@@ -186,6 +186,7 @@ class StudentResource extends Resource
                 //
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make()
             ])
@@ -213,4 +214,13 @@ class StudentResource extends Resource
             'edit' => Pages\EditStudent::route('/{record}/edit'),
         ];
     }
+    public static function getNavigationLabel(): string
+    {
+        return 'Estudiantes';
+    }
+    public static function getModelLabel(): string
+    {
+        return 'Estudiantes';
+    }
+
 }

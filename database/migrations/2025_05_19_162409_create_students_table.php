@@ -35,6 +35,7 @@ return new class extends Migration
             $table->string('emergency_contact_phone', 15)->nullable();
             $table->string('photo', 255)->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

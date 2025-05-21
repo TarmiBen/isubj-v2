@@ -68,6 +68,7 @@ class UserResource extends Resource
                 //
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make()
             ])
@@ -93,4 +94,13 @@ class UserResource extends Resource
             'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
     }
+    public static function getNavigationLabel(): string
+    {
+        return 'Usuarios';
+    }
+    public static function getModelLabel(): string
+    {
+        return 'Usuarios';
+    }
+
 }

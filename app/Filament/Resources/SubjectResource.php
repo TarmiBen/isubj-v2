@@ -26,6 +26,7 @@ class SubjectResource extends Resource
                 Forms\Components\TextInput::make('code')
                     ->label('Código')
                     ->required()
+                    ->autofocus()
                     ->maxLength(20),
                 Forms\Components\TextInput::make('name')
                     ->label('Nombre')
@@ -65,8 +66,10 @@ class SubjectResource extends Resource
                 //
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
+                Tables\Actions\DeleteAction::make(),
+
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -90,4 +93,14 @@ class SubjectResource extends Resource
             'edit' => Pages\EditSubject::route('/{record}/edit'),
         ];
     }
+    public static function getNavigationLabel(): string
+    {
+        return 'Materias';
+    }
+    public static function getModelLabel(): string
+    {
+        return 'Materia';
+    }
+
+
 }

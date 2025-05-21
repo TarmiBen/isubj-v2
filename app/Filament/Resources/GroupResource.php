@@ -57,6 +57,7 @@ class GroupResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make()
             ])
@@ -92,4 +93,13 @@ class GroupResource extends Resource
                 SoftDeletingScope::class,
             ]);
     }
+    public static function getNavigationLabel(): string
+    {
+        return 'Grupos';
+    }
+    public static function getModelLabel(): string
+    {
+        return 'Grupos';
+    }
+
 }

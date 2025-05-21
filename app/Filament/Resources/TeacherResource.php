@@ -72,6 +72,7 @@ class TeacherResource extends Resource
                 //
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make()
             ])
@@ -97,4 +98,13 @@ class TeacherResource extends Resource
             'edit' => Pages\EditTeacher::route('/{record}/edit'),
         ];
     }
+    public static function getNavigationLabel(): string
+    {
+        return 'Profesores';
+    }
+    public static function getModelLabel(): string
+    {
+        return 'Profesores';
+    }
+
 }
