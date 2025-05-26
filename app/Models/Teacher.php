@@ -10,17 +10,37 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Teacher extends Model
 {
     use HasFactory;
-    use SoftDeletes;
+    use softDeletes;
+
     /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
     protected $fillable = [
-        'name',
+        'employee_number',
+        'first_name',
         'last_name1',
         'last_name2',
+        'gender',
+        'date_of_birth',
+        'curp',
         'email',
+        'phone',
+        'mobile',
+        'hire_date',
+        'status',
+        'street',
+        'city',
+        'state',
+        'postal_code',
+        'country',
+        'title',
+        'specialization',
+        'photo',
+        'emergency_contact_name',
+        'emergency_contact_phone',
+        'meta',
     ];
 
     /**
@@ -32,6 +52,9 @@ class Teacher extends Model
     {
         return [
             'id' => 'integer',
+            'date_of_birth' => 'date',
+            'hire_date' => 'date',
+            'meta' => 'array',
         ];
     }
 
