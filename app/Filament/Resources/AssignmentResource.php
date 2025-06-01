@@ -29,7 +29,7 @@ class AssignmentResource extends Resource
                     ->required(),
                 Forms\Components\Select::make('teacher_id')
                     ->label('Maestro')
-                    ->relationship('teacher', 'name')
+                    ->relationship('teacher', 'first_name')
                     ->required(),
                 Forms\Components\Select::make('subject_id')
                     ->label('Materia')
@@ -46,7 +46,7 @@ class AssignmentResource extends Resource
                     ->Label('Grupo')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('teacher.name')
+                Tables\Columns\TextColumn::make('teacher.first_name')
                     ->Label('Profesor')
                     ->numeric()
                     ->sortable(),
@@ -94,6 +94,14 @@ class AssignmentResource extends Resource
             'create' => Pages\CreateAssignment::route('/create'),
             'edit' => Pages\EditAssignment::route('/{record}/edit'),
         ];
+    }
+    public static function getNavigationLabel(): string
+    {
+        return 'Asignaciones';
+    }
+    public static function getModelLabel(): string
+    {
+        return 'Asignaciones';
     }
 
 }

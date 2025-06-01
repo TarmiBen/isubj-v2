@@ -10,8 +10,8 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Section;
 
 class StudentResource extends Resource
 {
@@ -118,6 +118,35 @@ class StudentResource extends Resource
                     ->directory('students')
                     ->visibility('public')
                     ->columnSpanFull(),
+                Section::make('Documentos Personales')
+                    ->schema([
+                        FileUpload::make('acta_nacimiento')
+                            ->label('Acta de nacimiento')
+                            ->disk('public')
+                            ->directory('documentos/actas')
+                            ->preserveFilenames()
+                            ->storeFileNamesIn('acta_nacimiento_path')
+                            ->maxSize(2048)
+                            ->required(),
+
+                        FileUpload::make('curp_doc')
+                            ->label('CURP')
+                            ->disk('public')
+                            ->directory('documentos/curps')
+                            ->preserveFilenames()
+                            ->storeFileNamesIn('curp_documento_path')
+                            ->maxSize(2048)
+                            ->required(),
+
+                        FileUpload::make('ine')
+                            ->label('INE')
+                            ->disk('public')
+                            ->directory('documentos/ines')
+                            ->storeFileNamesIn('ine_path')
+                            ->preserveFilenames()
+                            ->maxSize(2048)
+                            ->required(),
+                    ])
             ]);
     }
 
@@ -142,30 +171,54 @@ class StudentResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('gender')
                     ->label('Genero'),
-                Tables\Columns\TextColumn::make('Fecha de cumpleaños')
+                Tables\Columns\TextColumn::make('date_of_birth')
+                    ->label('Fecha de Nacimiento')
                     ->date()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('curp')
+                    ->label('CURP')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('Correo')
+                Tables\Columns\TextColumn::make('email')
+                    ->label('Correo Electrónico')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('Telefono')
+                Tables\Columns\TextColumn::make('phone')
+                    ->label('Teléfono')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('Calle')
+                Tables\Columns\TextColumn::make('street')
+                    ->label('Calle')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('Ciudad')
+                Tables\Columns\TextColumn::make('city')
+                    ->label('Ciudad')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('Estado')
+                Tables\Columns\TextColumn::make('state')
+                    ->label('Estado')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('Código Postal')
+                Tables\Columns\TextColumn::make('postal_code')
+                    ->label('Código Postal')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('Ciudad')
+                Tables\Columns\TextColumn::make('city')
+                    ->label('País')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('enrollment_date')
+                    ->label('Fecha de Inscripción')
                     ->date()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('Estatus'),
+                Tables\Columns\TextColumn::make('status')
+                    ->label('Estado')
+                    ->badge()
+                    ->color(fn (string $state) => match ($state) {
+                        'active' => 'success',
+                        'inactive' => 'danger',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state): string => [
+                        'active' => 'Activo',
+                        'inactive' => 'Inactivo',
+                    ][$state] ?? $state)
+                    ->sortable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('guardian_name')
+                    ->label('Nombre del Tutor')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('guardian_phone')
                     ->searchable(),
