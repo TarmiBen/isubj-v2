@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Document;
 
 class Student extends Model
 {
@@ -52,6 +53,11 @@ class Student extends Model
             'date_of_birth' => 'date',
             'enrollment_date' => 'date',
         ];
+    }
+
+    public function documents()
+    {
+        return $this->morphMany(Document::class, 'documentable');
     }
 
 }
