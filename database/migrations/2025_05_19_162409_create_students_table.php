@@ -28,12 +28,13 @@ return new class extends Migration
             $table->string('postal_code', 10);
             $table->string('country', 100);
             $table->date('enrollment_date');
-            $table->enum('status', ["active","inactive","graduated","suspended"])->default('active');
+            $table->enum('status', ["active","inactive","graduated","suspended", "pre-registration"])->default('active');
             $table->string('guardian_name', 150)->nullable();
             $table->string('guardian_phone', 15)->nullable();
             $table->string('emergency_contact_name', 150)->nullable();
             $table->string('emergency_contact_phone', 15)->nullable();
             $table->string('photo', 255)->nullable();
+            $table->string('code', 50)->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

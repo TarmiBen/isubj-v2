@@ -32,7 +32,7 @@ return new class extends Migration
             $table->string('country', 100);
             $table->string('title', 100);
             $table->string('specialization', 150);
-            $table->string('photo', 255);
+            $table->string('photo', 255)->nullable();
             $table->string('emergency_contact_name', 150);
             $table->string('emergency_contact_phone', 20);
             $table->json('meta')->nullable();

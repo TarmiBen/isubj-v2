@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Exports\TeacherExporter;
 use App\Filament\Resources\TeacherResource\Pages;
 use App\Filament\Resources\TeacherResource\RelationManagers;
 use App\Models\Teacher;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -12,12 +14,18 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use App\Mail\ProfesorPasswordMail;
 
 class TeacherResource extends Resource
 {
     protected static ?string $model = Teacher::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationLabel = 'Profesores';
+    protected static ?string $modelLabel = 'Profesores';
 
     public static function form(Form $form): Form
     {
@@ -112,7 +120,6 @@ class TeacherResource extends Resource
                     ->label('Foto')
                     ->image()
                     ->imageEditor()
-                    ->required()
                     ->maxSize(1024)
                     ->preserveFilenames()
                     ->directory('students')
@@ -120,12 +127,10 @@ class TeacherResource extends Resource
                     ->columnSpanFull(),
                 Forms\Components\TextInput::make('emergency_contact_name')
                     ->label('Contacto de emergencia')
-                    ->required()
                     ->maxLength(150),
                 Forms\Components\TextInput::make('emergency_contact_phone')
                     ->label('Teléfono de contacto de emergencia')
                     ->tel()
-                    ->required()
                     ->maxLength(20),
                 Forms\Components\TextInput::make('meta')
                     ->required()
@@ -178,8 +183,19 @@ class TeacherResource extends Resource
                     ->date()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
-                    ->label('Estatus')
-                    ->searchable(),
+                    ->label('Estado')
+                    ->badge()
+                    ->color(fn (string $state) => match ($state) {
+                        'active' => 'success',
+                        'inactive' => 'danger',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state): string => [
+                        'active' => 'Activo',
+                        'inactive' => 'Inactivo',
+                    ][$state] ?? $state)
+                    ->sortable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('street')
                     ->label('Calle')
                     ->searchable(),
@@ -219,16 +235,25 @@ class TeacherResource extends Resource
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
             ])
+            ->headerActions([
+                Tables\Actions\ExportAction::make()
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->exporter(\App\Filament\Exports\TeacherExporter::class)
+            ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
+                Tables\Actions\DeleteAction::make(),
+
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                     Tables\Actions\ForceDeleteBulkAction::make(),
                     Tables\Actions\RestoreBulkAction::make(),
+                    Tables\Actions\ExportAction::make()
+                        ->exporter(TeacherExporter::class)
+                        ->label('Exportar')
                 ]),
             ]);
     }
@@ -252,16 +277,27 @@ class TeacherResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->withoutGlobalScopes([
-                SoftDeletingScope::class,
-            ]);
+            ->withoutGlobalScopes([SoftDeletingScope::class])
+            ->orderByDesc('created_at');
     }
-    public static function getNavigationLabel(): string
+
+
+    public static function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
     {
-        return 'Profesores';
-    }
-    public static function getModelLabel(): string
-    {
-        return 'Profesores';
+        $teacher = static::getModel()::create($data);
+
+        $randomPassword = Str::random(8);
+
+        $user = new User([
+            'name' => "{$teacher->first_name} {$teacher->last_name1} {$teacher->last_name2}",
+            'email' => $teacher->email,
+            'password' => Hash::make($randomPassword),
+        ]);
+
+        $user->userable()->associate($teacher);
+        $user->save();
+        Mail::to($teacher->email)->send(new ProfesorPasswordMail($user, $randomPassword));
+
+        return $teacher;
     }
 }

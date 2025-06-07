@@ -12,13 +12,16 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Section;
+use App\Filament\Exports\StudentExporter;
+use Illuminate\Database\Eloquent\Builder;
 
 class StudentResource extends Resource
 {
     protected static ?string $model = Student::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
+    protected static ?string $navigationLabel = 'Estudiantes';
+    protected static ?string $modelLabel = 'Estudiantes';
 
     public static function form(Form $form): Form
     {
@@ -112,7 +115,6 @@ class StudentResource extends Resource
                     ->label('Foto')
                     ->image()
                     ->imageEditor()
-                    ->required()
                     ->maxSize(1024)
                     ->preserveFilenames()
                     ->directory('students')
@@ -170,7 +172,7 @@ class StudentResource extends Resource
                     ->label('Apellido Materno')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('gender')
-                    ->label('Genero'),
+                    ->label('Género'),
                 Tables\Columns\TextColumn::make('date_of_birth')
                     ->label('Fecha de Nacimiento')
                     ->date()
@@ -221,16 +223,21 @@ class StudentResource extends Resource
                     ->label('Nombre del Tutor')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('guardian_phone')
+                    ->label('Teléfono del Tutor')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('emergency_contact_name')
+                    ->label('Nombre de Emergencia')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('emergency_contact_phone')
+                    ->label('Teléfono de Emergencia')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Fecha de Creación')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Fecha de Actualización')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -238,16 +245,20 @@ class StudentResource extends Resource
             ->filters([
                 //
             ])
+            ->headerActions([
+                Tables\Actions\ExportAction::make()->exporter(StudentExporter::class) ->icon('heroicon-o-arrow-down-tray')
+            ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                     Tables\Actions\ForceDeleteBulkAction::make(),
                     Tables\Actions\RestoreBulkAction::make(),
+                    Tables\Actions\ExportBulkAction::make()->exporter(StudentExporter::class),
                 ]),
             ]);
     }
@@ -267,13 +278,11 @@ class StudentResource extends Resource
             'edit' => Pages\EditStudent::route('/{record}/edit'),
         ];
     }
-    public static function getNavigationLabel(): string
+
+    public static function getEloquentQuery(): Builder
     {
-        return 'Estudiantes';
-    }
-    public static function getModelLabel(): string
-    {
-        return 'Estudiantes';
+        return parent::getEloquentQuery()
+            ->orderBy('created_at', 'desc');
     }
 
 }
