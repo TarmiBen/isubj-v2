@@ -18,6 +18,8 @@ class SubjectResource extends Resource
     protected static ?string $model = Subject::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationLabel = 'Materias';
+    protected static ?string $modelLabel = 'Materias';
 
     public static function form(Form $form): Form
     {
@@ -54,10 +56,12 @@ class SubjectResource extends Resource
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Fecha de creación')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Fecha de actualización')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -93,14 +97,9 @@ class SubjectResource extends Resource
             'edit' => Pages\EditSubject::route('/{record}/edit'),
         ];
     }
-    public static function getNavigationLabel(): string
+    public static function getEloquentQuery(): Builder
     {
-        return 'Materias';
+        return parent::getEloquentQuery()
+            ->orderBy('created_at', 'desc');
     }
-    public static function getModelLabel(): string
-    {
-        return 'Materia';
-    }
-
-
 }

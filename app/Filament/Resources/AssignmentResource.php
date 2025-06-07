@@ -12,12 +12,15 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Facades\Filament;
 
 class AssignmentResource extends Resource
 {
     protected static ?string $model = Assignment::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-book-open';
+    protected static ?string $navigationLabel = 'Asignaciones';
+    protected static ?string $modelLabel = 'Asignaciones';
 
     public static function form(Form $form): Form
     {
@@ -44,21 +47,26 @@ class AssignmentResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('group.name')
                     ->Label('Grupo')
+                    ->searchable()
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('teacher.first_name')
                     ->Label('Profesor')
                     ->numeric()
+                    ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('subject.name')
                     ->label('Materia')
                     ->numeric()
+                    ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Fecha de creación')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Fecha de actualización')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -95,13 +103,21 @@ class AssignmentResource extends Resource
             'edit' => Pages\EditAssignment::route('/{record}/edit'),
         ];
     }
-    public static function getNavigationLabel(): string
+
+    public static function getEloquentQuery(): Builder
     {
-        return 'Asignaciones';
+        $user = Filament::auth()->user();
+        $query = parent::getEloquentQuery()->orderBy('created_at', 'desc');
+
+        if ($user->hasRole('super_admin')) {
+            return $query;
+        }
+        if ($user->hasRole('profesor')) {
+            return $query->where('teacher_id', $user->userable_id);
+        }
+        return $query->whereRaw('1=0');
     }
-    public static function getModelLabel(): string
-    {
-        return 'Asignaciones';
-    }
+
+
 
 }

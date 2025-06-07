@@ -18,6 +18,8 @@ class CareerResource extends Resource
     protected static ?string $model = Career::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationLabel = 'Carreras';
+    protected static ?string $modelLabel = 'Carreras';
 
     public static function form(Form $form): Form
     {
@@ -78,17 +80,21 @@ class CareerResource extends Resource
                 Tables\Columns\TextColumn::make('duration_id')
                     ->label('Duración')
                     ->numeric()
+                    ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('total_credits')
                     ->label('Créditos Totales')
+                    ->searchable()
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('modality_id')
                     ->label('Modalidad')
+                    ->searchable()
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('coordinator_id')
                     ->label('Coordinador')
+                    ->searchable()
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
@@ -144,12 +150,10 @@ class CareerResource extends Resource
             'edit' => Pages\EditCareer::route('/{record}/edit'),
         ];
     }
-    public static function getNavigationLabel(): string
+    public static function getEloquentQuery(): Builder
     {
-        return 'Carreras';
+        return parent::getEloquentQuery()
+            ->orderBy('created_at', 'desc');
     }
-    public static function getModelLabel(): string
-    {
-        return 'Carreras';
-    }
+
 }

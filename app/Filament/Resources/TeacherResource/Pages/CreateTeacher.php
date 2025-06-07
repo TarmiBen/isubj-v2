@@ -13,4 +13,8 @@ class CreateTeacher extends CreateRecord
     {
         return $this->getResource()::getUrl('index');
     }
+    protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
+    {
+        return TeacherResource::handleRecordCreation($data);
+    }
 }
