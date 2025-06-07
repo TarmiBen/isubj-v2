@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class User extends Authenticatable implements FilamentUser
 {
@@ -53,6 +54,11 @@ class User extends Authenticatable implements FilamentUser
     public function canAccessPanel(Panel $panel): bool
     {
         return true;
+    }
+
+    public function userable(): MorphTo
+    {
+        return $this->morphTo();
     }
 
 

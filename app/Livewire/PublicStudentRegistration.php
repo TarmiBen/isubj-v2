@@ -15,6 +15,7 @@ class PublicStudentRegistration extends Component implements HasForms
     use InteractsWithForms;
 
     public ?array $data = [];
+    public $code ="123";
 
     public function mount(): void
     {
@@ -96,6 +97,10 @@ class PublicStudentRegistration extends Component implements HasForms
                     ->label('Teléfono de Contacto de Emergencia')
                     ->tel()
                     ->maxLength(15),
+                Forms\Components\TextInput::make('code')
+                    ->label('Código de Registro')
+                    ->required()
+                    ->maxLength(20),
             ])
             ->statePath('data')
             ->model(Student::class);
@@ -103,9 +108,12 @@ class PublicStudentRegistration extends Component implements HasForms
 
     public function create()
     {
-        $data = $this->form->getState();
-        $data['status'] = 'inactive';
+      if($this->data['code'] !== $this->code) {
+          return redirect()->route('student.create')->with('error', 'El código registrado es incorrecto.');
+        }
 
+        $data = $this->form->getState();
+        $data['status'] = 'pre-registration';
         $record = Student::create($data);
 
         $this->form->model($record)->saveRelationships();

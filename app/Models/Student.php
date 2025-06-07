@@ -39,6 +39,7 @@ class Student extends Model
         'emergency_contact_name',
         'emergency_contact_phone',
         'photo',
+        'code',
     ];
 
     /**

@@ -18,6 +18,8 @@ class ModalityResource extends Resource
     protected static ?string $model = Modality::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationLabel = 'Modalidades';
+    protected static ?string $modelLabel = 'Modalidades';
 
     public static function form(Form $form): Form
     {
@@ -69,10 +71,12 @@ class ModalityResource extends Resource
                     ->sortable()
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Fecha de creación')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Fecha de actualización')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -113,16 +117,8 @@ class ModalityResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->withoutGlobalScopes([
-                SoftDeletingScope::class,
-            ]);
+            ->withoutGlobalScopes([SoftDeletingScope::class])
+            ->orderByDesc('created_at');
     }
-    public static function getNavigationLabel(): string
-    {
-        return 'Modalidades';
-    }
-    public static function getModelLabel(): string
-    {
-        return 'Modalidades';
-    }
+
 }
