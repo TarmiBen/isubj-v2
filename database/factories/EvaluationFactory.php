@@ -1,0 +1,32 @@
+<?php
+
+namespace Database\Factories;
+
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
+use App\Models\Evaluation;
+use App\Models\Question;
+
+class EvaluationFactory extends Factory
+{
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var string
+     */
+    protected $model = Evaluation::class;
+
+    /**
+     * Define the model's default state.
+     */
+    public function definition(): array
+    {
+        return [
+            'evaluatable_id' => fake()->numberBetween(-10000, 10000),
+            'evaluatable_type' => fake()->regexify('[A-Za-z0-9]{100}'),
+            'question_id' => Question::factory(),
+            'response' => fake()->text(),
+            'meta' => '{}',
+        ];
+    }
+}
