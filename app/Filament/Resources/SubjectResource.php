@@ -34,6 +34,10 @@ class SubjectResource extends Resource
                     ->label('Nombre')
                     ->required()
                     ->maxLength(100),
+                Forms\Components\Select::make('career_id')
+                    ->label('Carrera')
+                    ->relationship('career', 'name')
+                    ->required(),
                 Forms\Components\TextInput::make('credits')
                     ->label('Creditos')
                     ->required()
@@ -51,6 +55,8 @@ class SubjectResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nombre')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('career.name')
+                ->label('Carrera'),
                 Tables\Columns\TextColumn::make('credits')
                     ->label('Creditos')
                     ->numeric()

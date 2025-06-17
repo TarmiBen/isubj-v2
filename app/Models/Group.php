@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -19,6 +20,8 @@ class Group extends Model
      */
     protected $fillable = [
         'code',
+        'period_id',
+        'generation_id',
         'name',
     ];
 
@@ -38,4 +41,13 @@ class Group extends Model
     {
         return $this->hasMany(Assignment::class);
     }
+    public function period(): BelongsTo
+    {
+        return $this->belongsTo(Period::class);
+    }
+    public function generation(): BelongsTo
+    {
+        return $this->belongsTo(Generation::class);
+    }
 }
+

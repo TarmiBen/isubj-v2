@@ -4,7 +4,9 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\GroupResource\Pages;
 use App\Filament\Resources\GroupResource\RelationManagers;
+use App\Models\Generation;
 use App\Models\Group;
+use App\Models\Period;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -33,6 +35,28 @@ class GroupResource extends Resource
                     ->label('Nombre')
                     ->required()
                     ->maxLength(100),
+                Forms\Components\Select::make('period_id')
+                    ->label('Periodo')
+                    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->name} - {$record->career->name}")
+                    ->reactive()
+                    ->relationship('period', 'name')
+                    ->required(),
+                Forms\Components\Select::make('generation_id')
+                    ->label('Generación')
+                    ->required()
+                    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->number} - {$record->career->name}")
+                    ->options(function (callable $get) {
+                        $periodId = $get('period_id');
+                        $period = $periodId ? \App\Models\Period::find($periodId) : null;
+                        return $period
+                            ? \App\Models\Generation::where('career_id', $period->career_id)
+                                ->get()
+                                ->mapWithKeys(fn ($generation) => [
+                                    $generation->id => "{$generation->number} - {$generation->career->name}",
+                                ])
+                                ->toArray()
+                            : [];
+                    }),
             ]);
     }
 
@@ -45,6 +69,15 @@ class GroupResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nombre')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('period.name')
+                    ->label('Peridodo')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('period.career.name')
+                    ->label('Carrera')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('generation.number')
+                    ->label('Generación')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Fecha de creación ')

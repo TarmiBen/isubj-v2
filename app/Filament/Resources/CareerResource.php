@@ -36,17 +36,20 @@ class CareerResource extends Resource
                 Forms\Components\TextInput::make('abbreviation')
                     ->label('Abreviatura')
                     ->maxLength(10),
-                Forms\Components\TextInput::make('duration_id')
+                Forms\Components\Select::make('duration_id')
                     ->label('Duración')
-                    ->required()
-                    ->numeric(),
+                    ->relationship('duration', 'name')
+                    ->required(),
+                Forms\Components\TextInput::make('duration_time')
+                    ->label('Número de periodos')
+                    ->required(),
                 Forms\Components\TextInput::make('total_credits')
                     ->label('Creditos totales')
                     ->numeric(),
-                Forms\Components\TextInput::make('modality_id')
+                Forms\Components\Select::make('modality_id')
                     ->label('Modalidad')
-                    ->required()
-                    ->numeric(),
+                    ->relationship('modality', 'name')
+                    ->required(),
                 Forms\Components\TextInput::make('coordinator_id')
                     ->label('Coordinador')
                     ->numeric(),
@@ -77,7 +80,7 @@ class CareerResource extends Resource
                 Tables\Columns\TextColumn::make('abbreviation')
                     ->label('Abreviatura')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('duration_id')
+                Tables\Columns\TextColumn::make('duration.name')
                     ->label('Duración')
                     ->numeric()
                     ->searchable()
@@ -87,7 +90,7 @@ class CareerResource extends Resource
                     ->searchable()
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('modality_id')
+                Tables\Columns\TextColumn::make('modality.name')
                     ->label('Modalidad')
                     ->searchable()
                     ->numeric()

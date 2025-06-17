@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\AssignmentResource\Pages;
 use App\Filament\Resources\AssignmentResource\RelationManagers;
 use App\Models\Assignment;
+use App\Models\Group;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,14 +14,16 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Facades\Filament;
+use App\Models\Subject;
+
 
 class AssignmentResource extends Resource
 {
     protected static ?string $model = Assignment::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-book-open';
-    protected static ?string $navigationLabel = 'Asignaciones';
-    protected static ?string $modelLabel = 'Asignaciones';
+    protected static ?string $navigationLabel = 'Asignaturas';
+    protected static ?string $modelLabel = 'Asignaturas';
 
     public static function form(Form $form): Form
     {
@@ -29,15 +32,25 @@ class AssignmentResource extends Resource
                 Forms\Components\Select::make('group_id')
                     ->label('Grupo')
                     ->relationship('group', 'name')
-                    ->required(),
+                    ->required()
+                    ->reactive(),
                 Forms\Components\Select::make('teacher_id')
                     ->label('Maestro')
                     ->relationship('teacher', 'first_name')
                     ->required(),
                 Forms\Components\Select::make('subject_id')
                     ->label('Materia')
-                    ->relationship('subject', 'name')
-                    ->required(),
+                    ->options(function (callable $get) {
+                        $groupId = $get('group_id');
+                        $group = Group::with('period.career')->find($groupId);
+                        if (!$group || !$group->period || !$group->period->career) return [];
+                        return Subject::where('career_id', $group->period->career->id)->pluck('name', 'id');
+                    })
+                    ->required()
+                    ->reactive()
+                    ->disabled(fn (callable $get) => !$get('group_id'))
+                    ->helperText('Selecciona primero un grupo'),
+
             ]);
     }
 

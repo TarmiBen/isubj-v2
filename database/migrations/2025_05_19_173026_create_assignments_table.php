@@ -15,9 +15,9 @@ return new class extends Migration
 
         Schema::create('assignments', function (Blueprint $table) {
             $table->id();
-            $table->id('group_id');
-            $table->id('teacher_id');
-            $table->id('subject_id');
+            $table->unsignedBigInteger('group_id');
+            $table->unsignedBigInteger('teacher_id');
+            $table->unsignedBigInteger('subject_id');
             $table->timestamps();
             $table->softDeletes();
         });

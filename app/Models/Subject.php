@@ -18,6 +18,7 @@ class Subject extends Model
     protected $fillable = [
         'code',
         'name',
+        'career_id',
         'credits',
     ];
 
@@ -36,5 +37,9 @@ class Subject extends Model
     public function assignments(): HasMany
     {
         return $this->hasMany(Assignment::class);
+    }
+    public function career(){
+
+        return $this->belongsTo(Career::class);
     }
 }

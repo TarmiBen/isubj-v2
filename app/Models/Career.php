@@ -12,6 +12,7 @@ class Career extends Model
         'abbreviation',
         'description',
         'duration_id',
+        'duration_time',
         'total_credits',
         'modality_id',
         'coordinator_id',
@@ -24,4 +25,23 @@ class Career extends Model
         'modality_id' => 'integer',
         'coordinator_id' => 'integer',
     ];
+
+    public function duration()
+    {
+        return $this->belongsTo(Duration::class);
+    }
+    public function modality()
+    {
+        return $this->belongsTo(Modality::class);
+    }
+    public function subject()
+    {
+        return $this->hasMany(Subject::class);
+    }
+    public function generations()
+    {
+        return $this->hasMany(Generation::class);
+    }
+
+
 }
