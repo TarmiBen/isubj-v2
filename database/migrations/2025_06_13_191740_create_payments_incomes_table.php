@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('payment', 100);
             $table->decimal('amount', 5, 2);
             $table->decimal('discount', 5, 2);
-            $table->enum('status', ["paid","pending"])->default('pending');
+            $table->enum('status', ["paid","pending", "condoned", "partial"])->default('pending');
             $table->json('meta');
             $table->timestamps();
         });

@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('abbreviation', 50)->unique();
             $table->string('description', 255)->nullable();
             $table->integer('total_credits');
-            $table->enum('status', ["active", "inactive"])->default('active');
+            $table->enum('status', ["active", "inactive", "archived"])->default('active');
             $table->timestamps();
         });
     }

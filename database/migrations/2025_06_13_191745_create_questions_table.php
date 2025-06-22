@@ -17,7 +17,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('quiz_id')->constrained();
             $table->text('text');
-            $table->enum('type', ["multiple_choice","single_choice"])->default('single_choice');
+            $table->enum('type', ["multiple_choice","open", "boolean", "numeric"])->default('single_choice');
             $table->json('options');
             $table->decimal('score_weight', 5, 2);
             $table->json('meta');
