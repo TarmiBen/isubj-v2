@@ -7,6 +7,7 @@ use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\Student;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Tables\Actions\Action;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -14,6 +15,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Section;
 use App\Filament\Exports\StudentExporter;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Livewire\Livewire;
 
 class StudentResource extends Resource
 {
@@ -87,8 +89,7 @@ class StudentResource extends Resource
                     ->required()
                     ->maxLength(100),
                 Forms\Components\DatePicker::make('enrollment_date')
-                    ->label('Fecha de inscripción')
-                    ->required(),
+                    ->label('Fecha de inscripción'),
                 Forms\Components\Select::make('status')
                     ->label('Estatus')
                     ->options([
@@ -125,29 +126,24 @@ class StudentResource extends Resource
                         FileUpload::make('acta_nacimiento')
                             ->label('Acta de nacimiento')
                             ->disk('public')
-                            ->directory('documentos/actas')
+                            ->directory('documents')
                             ->preserveFilenames()
                             ->storeFileNamesIn('acta_nacimiento_path')
-                            ->maxSize(2048)
-                            ->required(),
-
+                            ->maxSize(2048),
                         FileUpload::make('curp_doc')
                             ->label('CURP')
                             ->disk('public')
-                            ->directory('documentos/curps')
+                            ->directory('documents')
                             ->preserveFilenames()
                             ->storeFileNamesIn('curp_documento_path')
-                            ->maxSize(2048)
-                            ->required(),
-
+                            ->maxSize(2048),
                         FileUpload::make('ine')
                             ->label('INE')
                             ->disk('public')
-                            ->directory('documentos/ines')
+                            ->directory('documents')
                             ->storeFileNamesIn('ine_path')
                             ->preserveFilenames()
-                            ->maxSize(2048)
-                            ->required(),
+                            ->maxSize(2048),
                     ])
             ]);
     }
@@ -156,6 +152,7 @@ class StudentResource extends Resource
     {
         return $table
             ->columns([
+
                 Tables\Columns\ImageColumn::make('photo')
                     ->label('Foto')
                     ->circular()
@@ -246,13 +243,18 @@ class StudentResource extends Resource
                 //
             ])
             ->headerActions([
-                Tables\Actions\ExportAction::make()->exporter(StudentExporter::class) ->icon('heroicon-o-arrow-down-tray')
+                Tables\Actions\ExportAction::make()->exporter(StudentExporter::class) ->icon('heroicon-o-arrow-down-tray'),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
+                Tables\Actions\Action::make('Ver')
+                    ->icon('heroicon-o-eye')
+                    ->label('Ver')
+                    ->url(fn ($record) => StudentResource::getUrl('view', ['record' => $record]))
+                    ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
+
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
@@ -276,6 +278,7 @@ class StudentResource extends Resource
             'index' => Pages\ListStudents::route('/'),
             'create' => Pages\CreateStudent::route('/create'),
             'edit' => Pages\EditStudent::route('/{record}/edit'),
+            'view' => Pages\ViewStudent::route('/{record}/view'),
         ];
     }
 

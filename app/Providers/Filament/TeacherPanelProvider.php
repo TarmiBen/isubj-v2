@@ -23,10 +23,12 @@ class TeacherPanelProvider extends PanelProvider
     public function panel(Panel $panel): Panel
     {
         return $panel
+            ->default()
             ->id('teacher')
             ->path('teacher')
+            ->login()
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Cyan,
             ])
             ->resources([
                 AssignmentResource::class,
@@ -55,7 +57,7 @@ class TeacherPanelProvider extends PanelProvider
             ]) ->userMenuItems([])
             ->discoverResources(in: app_path('Filament/Resources/Teacher'), for: 'App\\Filament\\Resources\\Teacher')
             ->discoverPages(in: app_path('Filament/Pages/Teacher'), for: 'App\\Filament\\Pages\\Teacher')
-            ->discoverWidgets(in: app_path('Filament/Widgets/Teacher'), for: 'App\\Filament\\Widgets\\Teacher')
-            ->brandName('Panel Profesor');
+            ->discoverWidgets(in: app_path('Filament/Widgets/Teacher'), for: 'App\\Filament\\Widgets\\Teacher');
+
     }
 }

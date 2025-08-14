@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Group extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
     use SoftDeletes;
 
     /**
@@ -48,6 +50,15 @@ class Group extends Model
     public function generation(): BelongsTo
     {
         return $this->belongsTo(Generation::class);
+    }
+
+    public function getActivitylogOptions() :LogOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->useLogName('Group')
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 }
 

@@ -10,12 +10,14 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
         use HasFactory, Notifiable;
-        use HasRoles;
+        use HasRoles, LogsActivity;
 
     /**
      * The attributes that are mass assignable.
@@ -61,5 +63,13 @@ class User extends Authenticatable implements FilamentUser
         return $this->morphTo();
     }
 
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->useLogName('User')
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
 }

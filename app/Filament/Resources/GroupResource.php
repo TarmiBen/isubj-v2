@@ -14,6 +14,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\Select;
+use App\Models\Career;
+
 
 class GroupResource extends Resource
 {
@@ -35,21 +38,43 @@ class GroupResource extends Resource
                     ->label('Nombre')
                     ->required()
                     ->maxLength(100),
-                Forms\Components\Select::make('period_id')
-                    ->label('Periodo')
-                    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->name} - {$record->career->name}")
+                Select::make('career_id')
+                    ->label('Carrera')
+                    ->required()
                     ->reactive()
-                    ->relationship('period', 'name')
-                    ->required(),
-                Forms\Components\Select::make('generation_id')
+                    ->options(function () {
+                        return Career::where('status', 'active')
+                            ->get()
+                            ->mapWithKeys(fn ($career) => [
+                                $career->id => "{$career->abbreviation} - {$career->name}",
+                            ])
+                            ->toArray();
+                    }),
+
+                Select::make('period_id')
+                    ->label('Periodo')
+                    ->required()
+                    ->reactive()
+                    ->options(function (callable $get) {
+                        $careerId = $get('career_id');
+                        return $careerId
+                            ? Period::where('career_id', $careerId)
+                                ->get()
+                                ->mapWithKeys(fn ($period) => [
+                                    $period->id => "{$period->name} - {$period->career->name}",
+                                ])
+                                ->toArray()
+                            : [];
+                    }),
+
+                Select::make('generation_id')
                     ->label('Generación')
                     ->required()
-                    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->number} - {$record->career->name}")
                     ->options(function (callable $get) {
                         $periodId = $get('period_id');
-                        $period = $periodId ? \App\Models\Period::find($periodId) : null;
+                        $period = $periodId ? Period::find($periodId) : null;
                         return $period
-                            ? \App\Models\Generation::where('career_id', $period->career_id)
+                            ? Generation::where('career_id', $period->career_id)
                                 ->get()
                                 ->mapWithKeys(fn ($generation) => [
                                     $generation->id => "{$generation->number} - {$generation->career->name}",

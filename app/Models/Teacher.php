@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Teacher extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
     use softDeletes;
 
     /**
@@ -70,4 +72,12 @@ class Teacher extends Model
         return $this->morphOne(User::class, 'userable');
     }
 
+    public function getActivitylogOptions() :logOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->useLogName('Teacher')
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 }

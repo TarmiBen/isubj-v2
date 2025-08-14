@@ -40,7 +40,7 @@ class CreateStudent extends CreateRecord
 
             $student->documents()->create([
                 'name' => $name,
-                'src' => $storedPath,
+                'src' => 'documents/' . $storedPath,
                 'meta' => [],
             ]);
         }

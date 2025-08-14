@@ -20,6 +20,8 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Illuminate\Support\Facades\Route;
 use BezhanSalleh\FilamentShield\Resources\RoleResource;
 use BezhanSalleh\FilamentShield\Resources\PermissionResource;
+use Rmsramos\Activitylog\ActivitylogPlugin;
+
 
 
 class AdminPanelProvider extends PanelProvider
@@ -31,11 +33,15 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->brandLogo( asset('favicon.ico'))
+            ->brandLogoHeight('60px')
             ->plugins([
                 \BezhanSalleh\FilamentShield\FilamentShieldPlugin::make(),
+                //ActivitylogPlugin::make(),
             ])
+
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Cyan,
             ])
             ->databaseNotifications()
             ->discoverResources(app_path('Filament/Resources'), 'App\\Filament\\Resources')

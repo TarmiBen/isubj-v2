@@ -15,7 +15,7 @@ class PublicStudentRegistration extends Component implements HasForms
     use InteractsWithForms;
 
     public ?array $data = [];
-    public $code ="123";
+    public $code ="83649";
 
     public function mount(): void
     {

@@ -17,6 +17,7 @@ use Filament\Facades\Filament;
 use App\Models\Subject;
 
 
+
 class AssignmentResource extends Resource
 {
     protected static ?string $model = Assignment::class;
@@ -29,14 +30,33 @@ class AssignmentResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\Select::make('career_id')
+                    ->label('Carrera')
+                    ->options(function () {
+                        return \App\Models\Career::where('status','active')->pluck('name', 'id');
+                    })
+                    ->searchable()
+                    ->preload()
+                    ->afterStateUpdated(fn (callable $set) => $set('group_id', null))
+                    ->helperText('Selecciona primero una carrera'),
                 Forms\Components\Select::make('group_id')
                     ->label('Grupo')
-                    ->relationship('group', 'name')
+                   ->options(function (callable $get){
+                       $careerId = $get('career_id');
+                       if (!$careerId) return [];
+                       return Group::whereHas('period', function (Builder $query) use ($careerId) {
+                           $query->where('career_id', $careerId);
+                       })->with('period.career')->get()->pluck('name','id');
+                   })
+                    ->searchable()
                     ->required()
                     ->reactive(),
                 Forms\Components\Select::make('teacher_id')
                     ->label('Maestro')
-                    ->relationship('teacher', 'first_name')
+                    ->relationship('teacher', 'first_name',  modifyQueryUsing: fn ($query) => $query->where('status', 'active'))
+                    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->first_name} {$record->last_name1} {$record->last_name2}")
+                    ->searchable()
+                    ->preload()
                     ->required(),
                 Forms\Components\Select::make('subject_id')
                     ->label('Materia')
@@ -63,11 +83,11 @@ class AssignmentResource extends Resource
                     ->searchable()
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('teacher.first_name')
-                    ->Label('Profesor')
-                    ->numeric()
+                Tables\Columns\TextColumn::make('teacher.lastname1')
+                    ->label('Profesor')
                     ->searchable()
-                    ->sortable(),
+                    ->getStateUsing(fn ($record) => "{$record->teacher->first_name} {$record->teacher->last_name1} {$record->teacher->last_name2}"),
+
                 Tables\Columns\TextColumn::make('subject.name')
                     ->label('Materia')
                     ->numeric()

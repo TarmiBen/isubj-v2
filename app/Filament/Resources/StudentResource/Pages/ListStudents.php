@@ -3,11 +3,14 @@
 namespace App\Filament\Resources\StudentResource\Pages;
 
 use App\Filament\Resources\StudentResource;
+use App\Livewire\EnrollmentModal;
+use App\Livewire\PublicStudentRegistration;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
+use Livewire\Livewire;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\UploadedFile;
@@ -16,6 +19,15 @@ use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\ActionSize;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
+use App\Models\Student;
+use App\Models\Group;
+use App\Models\Inscription;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Html;
+use Filament\Forms\Contracts\HasForms;
+
+
 
 
 class ListStudents extends ListRecords
@@ -102,7 +114,34 @@ class ListStudents extends ListRecords
                             ->danger()
                             ->send();
                     }
+                }),
+            Action::make('inscribir')
+                ->label('Inscribir estudiante')
+                ->modalHeading('Inscribir Estudiante')
+                ->modalWidth('lg')
+                ->form([
+                    Select::make('student_id')
+                        ->label('Estudiante')
+                        ->options(Student::where('status', 'active')->pluck('name', 'id')->toArray())
+                        ->searchable()
+                        ->required(),
+                    Select::make('group_id')
+                        ->label('Grupo')
+                        ->options(Group::all()->pluck('name', 'id')->toArray())
+                        ->searchable()
+                        ->required(),
+                    Hidden::make('status')->default('active'),
+                ])
+                ->action(function (array $data) {
+                    Inscription::create($data);
+                    Notification::make()
+                        ->title('Inscripción exitosa')
+                        ->body('El estudiante ha sido inscrito correctamente.')
+                        ->success()
+                        ->send();
+
                 })
         ];
     }
+
 }

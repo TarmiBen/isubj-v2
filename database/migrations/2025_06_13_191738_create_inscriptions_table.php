@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::create('inscriptions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('student_id')->constrained();
-            $table->foreignId('period_id')->constrained();
+            $table->foreignId('group_id')->constrained();
             $table->enum('status', ["active","inactive", "down", "abandoned"])->default('active');
             $table->timestamps();
         });

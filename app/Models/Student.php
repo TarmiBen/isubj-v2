@@ -6,10 +6,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Document;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
+use App\Models\Inscription;
 
 class Student extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
     use SoftDeletes;
 
     /**
@@ -60,5 +63,38 @@ class Student extends Model
     {
         return $this->morphMany(Document::class, 'documentable');
     }
+
+    public function inscriptions()
+    {
+        return $this->hasMany(Inscription::class);
+    }
+
+    public function user()
+    {
+        return $this->morphOne(User::class, 'userable');
+    }
+
+
+    public function getActivitylogOptions() : LogOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->useLogName('student')
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
+
+    public function getFullNameAttribute()
+    {
+        return "{$this->name} {$this->last_name1} {$this->last_name2}";
+    }
+
+    public function getLastInscriptionAttribute()
+    {
+        return $this->inscriptions()->with('group')->latest()->first();
+    }
+
+
+
 
 }

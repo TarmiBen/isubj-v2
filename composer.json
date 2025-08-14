@@ -1,17 +1,33 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "isubj/laravel",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "authors": [
+        {
+            "name": "Ben Ramirez",
+            "email": "ben@ilusion-studio.com"
+        },
+        {
+            "name": "Karen Valadez",
+            "email": "karen.valadez.n@gmail.com"
+        }
+    ],
+    "description": "The system of school ISBJ.",
     "keywords": ["laravel", "framework"],
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "bezhansalleh/filament-language-switch": "^3.1",
+        "bezhansalleh/filament-shield": "^3.3",
+        "filament/actions": "^3.3",
         "filament/filament": "^3.3",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "livewire/livewire": "^3.6",
         "livewire/volt": "^1.7.0",
+        "maatwebsite/excel": "^3.1",
+        "rmsramos/activitylog": "^1.0",
+        "spatie/laravel-backup": "^9.3",
         "spatie/laravel-permission": "^6.18"
     },
     "require-dev": {

@@ -17,7 +17,7 @@ class Inscription extends Model
      */
     protected $fillable = [
         'student_id',
-        'period_id',
+        'group_id',
         'status',
     ];
 
@@ -31,7 +31,7 @@ class Inscription extends Model
         return [
             'id' => 'integer',
             'student_id' => 'integer',
-            'period_id' => 'integer',
+            'group_id',
         ];
     }
 
@@ -40,8 +40,8 @@ class Inscription extends Model
         return $this->belongsTo(Student::class);
     }
 
-    public function period(): BelongsTo
+    public function group(): BelongsTo
     {
-        return $this->belongsTo(Period::class);
+        return $this->belongsTo(Group::class);
     }
 }
