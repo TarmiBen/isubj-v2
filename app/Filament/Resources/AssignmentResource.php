@@ -32,9 +32,13 @@ class AssignmentResource extends Resource
             ->schema([
                 Forms\Components\Select::make('career_id')
                     ->label('Carrera')
-                    ->options(function () {
-                        return \App\Models\Career::where('status','active')->pluck('name', 'id');
-                    })
+                    ->options(
+                        \App\Models\Career::where('status', 'active')
+                            ->get()
+                            ->mapWithKeys(fn ($career) => [
+                                $career->id => "{$career->code} - {$career->name}"
+                            ])
+                    )
                     ->searchable()
                     ->preload()
                     ->afterStateUpdated(fn (callable $set) => $set('group_id', null))

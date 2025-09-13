@@ -6,13 +6,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Document;
-use Spatie\Activitylog\Traits\LogsActivity;
-use Spatie\Activitylog\LogOptions;
+//use Spatie\Activitylog\Traits\LogsActivity;
+//use Spatie\Activitylog\LogOptions;
 use App\Models\Inscription;
 
 class Student extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory; //LogsActivity;
     use SoftDeletes;
 
     /**

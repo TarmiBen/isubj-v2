@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\StudentResource\Pages;
 
 use App\Filament\Resources\StudentResource;
-use App\Livewire\EnrollmentModal;
 use App\Livewire\PublicStudentRegistration;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
@@ -13,7 +12,7 @@ use Filament\Notifications\Notification;
 use Livewire\Livewire;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\UploadedFile;
+use Illuminate\Database\Eloquent\Builder;
 use App\Imports\StudentImport;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\ActionSize;
@@ -122,18 +121,41 @@ class ListStudents extends ListRecords
                 ->form([
                     Select::make('student_id')
                         ->label('Estudiante')
-                        ->options(Student::where('status', 'active')->pluck('name', 'id')->toArray())
+                        ->options(Student::where('status', 'active')->get()->pluck('full_name', 'id')->toArray())
                         ->searchable()
                         ->required(),
+                    Select::make('career_id')
+                        ->label('Carrera')
+                        ->options(
+                            \App\Models\Career::where('status', 'active')
+                                ->get()
+                                ->mapWithKeys(fn ($career) => [
+                                    $career->id => "{$career->code} - {$career->name}"
+                                ])
+                        )
+                        ->searchable()
+                        ->preload()
+                        ->afterStateUpdated(fn (callable $set) => $set('group_id', null))
+                        ->helperText('Selecciona primero una carrera'),
                     Select::make('group_id')
                         ->label('Grupo')
-                        ->options(Group::all()->pluck('name', 'id')->toArray())
+                        ->options(function (callable $get){
+                            $careerId = $get('career_id');
+                            if (!$careerId) return [];
+                            return Group::whereHas('period', function (Builder $query) use ($careerId) {
+                                $query->where('career_id', $careerId);
+                            })->with('period.career')->get()->pluck('name','id');
+                        })
                         ->searchable()
-                        ->required(),
-                    Hidden::make('status')->default('active'),
+                        ->required()
+                        ->reactive(),
                 ])
                 ->action(function (array $data) {
-                    Inscription::create($data);
+                    Inscription::create([
+                        'student_id' => $data['student_id'],
+                        'group_id'   => $data['group_id'],
+                        'status'     => 'active',
+                    ]);
                     Notification::make()
                         ->title('Inscripción exitosa')
                         ->body('El estudiante ha sido inscrito correctamente.')

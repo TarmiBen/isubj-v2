@@ -36,6 +36,7 @@ class SubjectResource extends Resource
                     ->maxLength(100),
                 Forms\Components\Select::make('career_id')
                     ->label('Carrera')
+                    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->code} - {$record->name}")
                     ->relationship('career', 'name')
                     ->required(),
                 Forms\Components\TextInput::make('credits')

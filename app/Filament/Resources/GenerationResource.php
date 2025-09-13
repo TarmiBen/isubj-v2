@@ -31,6 +31,7 @@ class GenerationResource extends Resource
                 Forms\Components\Select::make('career_id')
                     ->label('Carrera')
                     ->relationship('career', 'name')
+                    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->code} - {$record->name}")
                     ->required()
                     ->reactive()
                     ->afterStateUpdated(function ($state, callable $set) {

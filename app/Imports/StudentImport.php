@@ -8,9 +8,9 @@ use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Illuminate\Validation\Rule;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
+use Maatwebsite\Excel\Concerns\WithValidation;
 
-
-class StudentImport implements ToModel, WithHeadingRow
+class StudentImport implements ToModel, WithHeadingRow,  WithValidation
 {
     public function model(array $row)
     {
@@ -85,6 +85,14 @@ class StudentImport implements ToModel, WithHeadingRow
             'telefono_del_tutor' => ['nullable', 'string', 'max:15'],
             'nombre_de_contacto_de_emergencia' => ['nullable', 'string', 'max:150'],
             'telefono_del_contacto_de_emergencia' => ['nullable', 'string', 'max:15'],
+        ];
+    }
+    public function customValidationMessages(): array
+    {
+        return [
+            'numero_de_estudiante.unique' => 'El número de estudiante ya está registrado.',
+            'curp.unique' => 'La CURP ya está registrada.',
+            'correo.unique' => 'El correo ya está registrado.',
         ];
     }
 

@@ -41,7 +41,24 @@ class UserResource extends Resource
                     ->relationship('roles', 'name')
                     ->multiple()
                     ->preload()
-                    ->searchable()
+                    ->searchable(),
+                Forms\Components\TextInput::make('password')
+                    ->label('Contraseña')
+                    ->password()
+                    ->required(fn (string $context): bool => $context === 'create')
+                    ->minLength(8)
+                    ->maxLength(255)
+                    ->dehydrated(fn ($state) => filled($state))
+                    ->hiddenOn('view'),
+                Forms\Components\TextInput::make('password_confirmation')
+                    ->label('Confirmar Contraseña')
+                    ->password()
+                    ->required(fn (string $context): bool => $context === 'create')
+                    ->minLength(8)
+                    ->maxLength(255)
+                    ->dehydrated(false)
+                    ->same('password')
+                    ->hiddenOn('view'),
             ]);
     }
 

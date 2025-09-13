@@ -16,6 +16,7 @@ use Filament\Forms\Components\Section;
 use App\Filament\Exports\StudentExporter;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Livewire\Livewire;
+use Illuminate\Validation\Rule;
 
 class StudentResource extends Resource
 {
@@ -32,6 +33,10 @@ class StudentResource extends Resource
                 Forms\Components\TextInput::make('student_number')
                     ->label('Matrícula')
                     ->required()
+                    ->rule(fn ($record) => Rule::unique('students', 'student_number')->ignore($record))
+                    ->validationMessages([
+                        'unique' => 'Esta matrícula ya está registrada para otro estudiante.',
+                    ])
                     ->maxLength(20),
                 Forms\Components\TextInput::make('name')
                     ->label('Nombre')
@@ -57,10 +62,19 @@ class StudentResource extends Resource
                     ->required(),
                 Forms\Components\TextInput::make('curp')
                     ->required()
+                    ->maxLength(18)
+                    ->rule(fn ($record) => Rule::unique('students', 'curp')->ignore($record))
+                    ->validationMessages([
+                        'unique' => 'Esta CURP ya está registrada para otro estudiante.',
+                    ])
                     ->maxLength(18),
                 Forms\Components\TextInput::make('email')
                     ->label('Correo')
                     ->email()
+                    ->rule(fn ($record) => Rule::unique('students', 'email')->ignore($record))
+                    ->validationMessages([
+                        'unique' => 'Este correo ya está registrada por otro estudiante.',
+                    ])
                     ->required()
                     ->maxLength(150),
                 Forms\Components\TextInput::make('phone')
