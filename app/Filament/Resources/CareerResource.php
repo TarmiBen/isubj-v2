@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CareerResource\Pages;
-use App\Filament\Resources\CareerResource\RelationManagers;
 use App\Models\Career;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -20,6 +19,11 @@ class CareerResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationLabel = 'Carreras';
     protected static ?string $modelLabel = 'Carreras';
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()->can('view_any_career');
+    }
 
     public static function form(Form $form): Form
     {

@@ -15,17 +15,16 @@ class CreateCareer extends CreateRecord
     {
         return $this->getResource()::getUrl('index');
     }
-    protected function aftercreate(){
+    protected function afterCreate()
+    {
         $career = $this->record;
-        $duration = Duration::find($career->duration_time);
-        $type = $career->duration_id == 1 ? 'Cuatrimestre' : ($career->duration_id == 2 ? 'Semestre' : 'Año');
-        for ($i = 1; $i<=$career->duration_time; $i++){
+        $durationName = $career->duration->name ?? '';
+        for ($i = 1; $i <= $career->duration_time; $i++) {
             Period::create([
-                'name' =>  "{$i}º " . $type,
+                'name' => "{$durationName} {$i}",
                 'number' => $i,
                 'career_id' => $career->id,
             ]);
         }
-
     }
 }

@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\GroupResource\Pages;
 use App\Filament\Resources\GroupResource\RelationManagers;
-use App\Models\Generation;
 use App\Models\Group;
 use App\Models\Period;
 use Filament\Forms;
@@ -26,6 +25,11 @@ class GroupResource extends Resource
     protected static ?string $navigationLabel = 'Grupos';
     protected static ?string $modelLabel = 'Grupos';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()->can('view_any_group');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -34,10 +38,6 @@ class GroupResource extends Resource
                     ->label('Código')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('name')
-                    ->label('Nombre')
-                    ->required()
-                    ->maxLength(100),
                 Select::make('career_id')
                     ->label('Carrera')
                     ->required()
@@ -61,27 +61,21 @@ class GroupResource extends Resource
                             ? Period::where('career_id', $careerId)
                                 ->get()
                                 ->mapWithKeys(fn ($period) => [
-                                    $period->id => "{$period->name} - {$period->career->name}",
+                                    $period->id => "{$period->name} ",
                                 ])
                                 ->toArray()
                             : [];
-                    }),
+                    })
+                ->helperText('Selecciona primero una carrera')
+                ,
 
-                Select::make('generation_id')
-                    ->label('Generación')
+                Select::make('cycle_id')
+                    ->label('Ciclo')
+                    ->options(\App\Models\Cycle::all()->pluck('name', 'id'))
+                    ->default(fn () => \App\Models\Cycle::where('active', true)->first()?->id)
                     ->required()
-                    ->options(function (callable $get) {
-                        $periodId = $get('period_id');
-                        $period = $periodId ? Period::find($periodId) : null;
-                        return $period
-                            ? Generation::where('career_id', $period->career_id)
-                                ->get()
-                                ->mapWithKeys(fn ($generation) => [
-                                    $generation->id => "{$generation->number} - {$generation->career->name}",
-                                ])
-                                ->toArray()
-                            : [];
-                    }),
+                    ->searchable()
+                    ->preload(),
             ]);
     }
 
@@ -92,28 +86,25 @@ class GroupResource extends Resource
                 Tables\Columns\TextColumn::make('code')
                     ->label('Código')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('name')
-                    ->label('Nombre')
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('period.name')
                     ->label('Peridodo')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('period.career.name')
                     ->label('Carrera')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('generation.number')
-                    ->label('Generación')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('Fecha de creación ')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Fecha de actualización')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('status')
+                ->label('Estado')
+                ->badge()
+                ->color(fn (string $state) => match ($state) {
+                    '1' => 'success',
+                    '0' => 'danger',
+                    default => 'gray',
+                })
+                ->formatStateUsing(fn (string $state): string => match ($state) {
+                    '1' => 'Activo',
+                    '0' => 'Inactivo'
+                })
+
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
@@ -150,9 +141,18 @@ class GroupResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
+        $activeCycle = \App\Models\Cycle::where('active', true)->first();
+
+        $query = parent::getEloquentQuery()
             ->withoutGlobalScopes([SoftDeletingScope::class])
             ->orderByDesc('created_at');
+
+        // Filtrar por ciclo activo
+        if ($activeCycle) {
+            $query->where('cycle_id', $activeCycle->id);
+        }
+
+        return $query;
     }
 
 

@@ -6,13 +6,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Spatie\Activitylog\Traits\LogsActivity;
-use Spatie\Activitylog\LogOptions;
+// use Spatie\Activitylog\Traits\LogsActivity;
+// use Spatie\Activitylog\LogOptions;
 
 class Group extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory; // LogsActivity;
     use SoftDeletes;
 
     /**
@@ -24,7 +25,9 @@ class Group extends Model
         'code',
         'period_id',
         'generation_id',
-        'name',
+        'status',
+        'cycle_id',
+        'meta',
     ];
 
     /**
@@ -43,22 +46,38 @@ class Group extends Model
     {
         return $this->hasMany(Assignment::class);
     }
+
+    public function inscriptions(): HasMany
+    {
+        return $this->hasMany(Inscription::class);
+    }
+
+    public function students(): HasManyThrough
+    {
+        return $this->hasManyThrough(Student::class, Inscription::class, 'group_id', 'id', 'id', 'student_id');
+    }
+
     public function period(): BelongsTo
     {
         return $this->belongsTo(Period::class);
     }
+
     public function generation(): BelongsTo
     {
         return $this->belongsTo(Generation::class);
     }
 
-    public function getActivitylogOptions() :LogOptions
+    public function cycle(): BelongsTo
     {
-        return LogOptions::defaults()
-            ->logAll()
-            ->useLogName('Group')
-            ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
+        return $this->belongsTo(Cycle::class);
     }
-}
 
+    // public function getActivitylogOptions() :LogOptions
+    // {
+    //     return LogOptions::defaults()
+    //         ->logAll()
+    //         ->useLogName('Group')
+    //         ->logOnlyDirty()
+    //         ->dontSubmitEmptyLogs();
+    // }
+}

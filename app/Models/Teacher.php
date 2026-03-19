@@ -7,12 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
-use Spatie\Activitylog\Traits\LogsActivity;
-use Spatie\Activitylog\LogOptions;
 
 class Teacher extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory;
     use softDeletes;
 
     /**
@@ -41,6 +39,7 @@ class Teacher extends Model
         'title',
         'specialization',
         'photo',
+        'photo_thumb',
         'emergency_contact_name',
         'emergency_contact_phone',
         'meta',
@@ -66,18 +65,35 @@ class Teacher extends Model
         return $this->hasMany(Assignment::class);
     }
 
+    public function subjects()
+    {
+        return $this->belongsToMany(Subject::class, 'assignments')->distinct();
+    }
+
 
     public function user(): MorphOne
     {
         return $this->morphOne(User::class, 'userable');
     }
 
-    public function getActivitylogOptions() :logOptions
+    public function getNameAttribute(): string
     {
-        return LogOptions::defaults()
-            ->logAll()
-            ->useLogName('Teacher')
-            ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
+        return trim($this->first_name . ' ' . $this->last_name1 . ' ' . $this->last_name2);
+    }
+
+    public function fullName(): string
+    {
+        return trim($this->first_name . ' ' . $this->last_name1 . ' ' . $this->last_name2);
+    }
+
+
+    public function qualifications()
+    {
+        return $this->hasMany(Qualification::class, 'teacher_id');
+    }
+
+    public function surveyRelated()
+    {
+        return $this->morphMany(SurveyRelated::class, 'survivable');
     }
 }

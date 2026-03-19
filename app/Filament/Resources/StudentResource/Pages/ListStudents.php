@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\StudentResource\Pages;
 
 use App\Filament\Resources\StudentResource;
+use App\Filament\Support\CommonActions;
 use App\Livewire\PublicStudentRegistration;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
@@ -114,55 +115,7 @@ class ListStudents extends ListRecords
                             ->send();
                     }
                 }),
-            Action::make('inscribir')
-                ->label('Inscribir estudiante')
-                ->modalHeading('Inscribir Estudiante')
-                ->modalWidth('lg')
-                ->form([
-                    Select::make('student_id')
-                        ->label('Estudiante')
-                        ->options(Student::where('status', 'active')->get()->pluck('full_name', 'id')->toArray())
-                        ->searchable()
-                        ->required(),
-                    Select::make('career_id')
-                        ->label('Carrera')
-                        ->options(
-                            \App\Models\Career::where('status', 'active')
-                                ->get()
-                                ->mapWithKeys(fn ($career) => [
-                                    $career->id => "{$career->code} - {$career->name}"
-                                ])
-                        )
-                        ->searchable()
-                        ->preload()
-                        ->afterStateUpdated(fn (callable $set) => $set('group_id', null))
-                        ->helperText('Selecciona primero una carrera'),
-                    Select::make('group_id')
-                        ->label('Grupo')
-                        ->options(function (callable $get){
-                            $careerId = $get('career_id');
-                            if (!$careerId) return [];
-                            return Group::whereHas('period', function (Builder $query) use ($careerId) {
-                                $query->where('career_id', $careerId);
-                            })->with('period.career')->get()->pluck('name','id');
-                        })
-                        ->searchable()
-                        ->required()
-                        ->reactive(),
-                ])
-                ->action(function (array $data) {
-                    Inscription::create([
-                        'student_id' => $data['student_id'],
-                        'group_id'   => $data['group_id'],
-                        'status'     => 'active',
-                    ]);
-                    Notification::make()
-                        ->title('Inscripción exitosa')
-                        ->body('El estudiante ha sido inscrito correctamente.')
-                        ->success()
-                        ->send();
-
-                })
+                CommonActions::EnrollStudent()
         ];
     }
 

@@ -1,7 +1,10 @@
 <?php
 
 namespace App\Providers\Filament;
-use App\Filament\Resources\AssignmentResource;
+
+use App\Filament\Teacher\Pages\Login;
+use App\Filament\Teacher\Pages\RequestPasswordReset;
+use App\Filament\Teacher\Pages\ResetPassword;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -23,16 +26,22 @@ class TeacherPanelProvider extends PanelProvider
     public function panel(Panel $panel): Panel
     {
         return $panel
-            ->default()
             ->id('teacher')
             ->path('teacher')
-            ->login()
+            ->login(Login::class)
+            ->passwordReset([
+                'request' => RequestPasswordReset::class,
+                'reset' => ResetPassword::class,
+            ])
+            ->authGuard('web')
             ->colors([
-                'primary' => Color::Cyan,
+                'primary' => Color::Amber,
             ])
-            ->resources([
-                AssignmentResource::class,
-            ])
+            ->discoverResources(
+                in: app_path('Filament/Teacher/Resources'),
+                for: 'App\\Filament\\Teacher\\Resources',
+            )
+            ->discoverPages(in: app_path('Filament/Teacher/Pages'), for: 'App\\Filament\\Teacher\\Pages')
             ->pages([
                 Pages\Dashboard::class,
             ])
@@ -54,10 +63,6 @@ class TeacherPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]) ->userMenuItems([])
-            ->discoverResources(in: app_path('Filament/Resources/Teacher'), for: 'App\\Filament\\Resources\\Teacher')
-            ->discoverPages(in: app_path('Filament/Pages/Teacher'), for: 'App\\Filament\\Pages\\Teacher')
-            ->discoverWidgets(in: app_path('Filament/Widgets/Teacher'), for: 'App\\Filament\\Widgets\\Teacher');
-
+            ]);
     }
 }

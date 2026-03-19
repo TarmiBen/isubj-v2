@@ -5,12 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Spatie\Activitylog\Traits\LogsActivity;
-use Spatie\Activitylog\LogOptions;
 
 class Assignment extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory; // LogsActivity;
 
     /**
      * The attributes that are mass assignable.
@@ -21,6 +19,7 @@ class Assignment extends Model
         'group_id',
         'teacher_id',
         'subject_id',
+        'cycle_id',
     ];
 
     /**
@@ -37,14 +36,16 @@ class Assignment extends Model
             'subject_id' => 'integer',
         ];
     }
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logOnly(['group_id', 'teacher_id', 'subject_id']) // campos a logear
-            ->useLogName('Asignament')
-            ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
-    }
+
+    // public function getActivitylogOptions(): LogOptions
+    // {
+    //     return LogOptions::defaults()
+    //         ->logOnly(['group_id', 'teacher_id', 'subject_id']) // campos a logear
+    //         ->useLogName('Asignament')
+    //         ->logOnlyDirty()
+    //         ->dontSubmitEmptyLogs();
+    // }
+
     public function group(): BelongsTo
     {
         return $this->belongsTo(Group::class);
@@ -59,4 +60,30 @@ class Assignment extends Model
     {
         return $this->belongsTo(Subject::class);
     }
+
+    public function cycle(): BelongsTo
+    {
+        return $this->belongsTo(Cycle::class);
+    }
+
+    public function documents()
+    {
+        return $this->morphMany(Document::class, 'documentable');
+    }
+
+    public function units()
+    {
+        return $this->hasMany(Unit::class);
+    }
+
+    public function surveyRelated()
+    {
+        return $this->morphMany(SurveyRelated::class, 'survivable');
+    }
+
+    public function finalGrades()
+    {
+        return $this->hasMany(FinalGrade::class);
+    }
+
 }

@@ -4,12 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Spatie\Activitylog\Traits\LogsActivity;
-use Spatie\Activitylog\LogOptions;
+// use Spatie\Activitylog\Traits\LogsActivity;
+// use Spatie\Activitylog\LogOptions;
 
 class Career extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory; // LogsActivity;
 
     protected $fillable = [
         'code',
@@ -47,15 +47,18 @@ class Career extends Model
     {
         return $this->hasMany(Generation::class);
     }
-
-    public function getActivitylogOptions(): LogOptions
+    public function periods()
     {
-        return LogOptions::defaults()
-            ->logAll()
-            ->useLogName('Career')
-            ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
-
+        return $this->hasMany(Period::class);
     }
+
+    // public function getActivitylogOptions(): LogOptions
+    // {
+    //     return LogOptions::defaults()
+    //         ->logAll()
+    //         ->useLogName('Career')
+    //         ->logOnlyDirty()
+    //         ->dontSubmitEmptyLogs();
+    // }
 
 }

@@ -6,31 +6,36 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithBatchInserts;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithLimit;
 use Illuminate\Validation\Rule;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use Maatwebsite\Excel\Concerns\WithValidation;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
-class StudentImport implements ToModel, WithHeadingRow,  WithValidation
+class StudentImport implements ToModel, WithHeadingRow,  WithValidation, WithBatchInserts, WithChunkReading // , ShouldQueue
 {
+
+
     public function model(array $row)
     {
+
+
+        if (empty($row['nombre']) || trim($row['nombre']) === '') {
+            throw new \Exception('Procesamiento detenido: Se encontró una fila con nombre vacío. No se procesarán más registros.');
+        }
+
         return new Student([
-            'student_number' => $row['numero_de_estudiante'] ?? null,
+            'student_number' => $row['numero_de_estudiante'] == '' ? null : $row['numero_de_estudiante'],
             'name' => $row['nombre'] ?? 'Sin nombre',
             'last_name1' => $row['apellido_paterno'] ?? 'sin apellido',
             'last_name2' => $row['apellido_materno'] ?? 'sin apellido',
-            'gender' => isset($row['genero'])
-                ? [
-                'masculino' => 'M',
-                'femenino' => 'F',
-                'Otro' => 'O',
-            ][$row['genero']] ?? (in_array($row['genero'], ['M', 'F', 'O']) ? $row['genero'] : 'O') : 'O',
+            'gender' => $this->parseGender($row['genero'] ?? null),
             'date_of_birth' => isset($row['fecha_de_nacimiento'])
                 ? (is_numeric($row['fecha_de_nacimiento'])
                     ? Date::excelToDateTimeObject($row['fecha_de_nacimiento'])->format('Y-m-d')
-                    : (strtotime($row['fecha_de_nacimiento']) !== false
-                        ? Carbon::parse($row['fecha_de_nacimiento'])->format('Y-m-d')
-                        : null))
+                    : $this->parseDate($row['fecha_de_nacimiento']))
                 : null,
             'curp' => $row['curp'] ?? 'sin curp',
             'email' => $row['correo'] ?? 'sin correo',
@@ -40,13 +45,6 @@ class StudentImport implements ToModel, WithHeadingRow,  WithValidation
             'state' => $row['estado'] ?? 'sin estado',
             'postal_code' => $row['codigo_postal'] ?? '00000',
             'country' => $row['pais'] ?? 'México',
-            'enrollment_date' => isset($row['fecha_de_inscripcion'])
-                ? (is_numeric($row['fecha_de_inscripcion'])
-                    ? Date::excelToDateTimeObject($row['fecha_de_inscripcion'])->format('Y-m-d')
-                    : (strtotime($row['fecha_de_inscripcion']) !== false
-                        ? Carbon::parse($row['fecha_de_inscripcion'])->format('Y-m-d')
-                        : Carbon::parse('2000-01-01')->format('Y-m-d')))
-                : Carbon::parse('0000-00-00')->format('Y-m-d'),
             'status' => isset($row['estado_alumno'])
                 ? [
                 'activo' => 'active',
@@ -65,26 +63,72 @@ class StudentImport implements ToModel, WithHeadingRow,  WithValidation
     public function rules(): array
     {
         return [
-            'numero_de_estudiante' => ['required', 'string', 'max:20', 'unique:students,student_number'],
-            'nombre' => ['required', 'string', 'max:100'],
+            'numero_de_estudiante' => [ 'max:40', 'unique:students,student_number', 'nullable'],
+            'nombre' => ['nullable', 'string', 'max:100'],
             'apellido_paterno' => ['required', 'string', 'max:100'],
             'apellido_materno' => ['required', 'string', 'max:100'],
-            'genero' => ['required', Rule::in(['M', 'F', 'O'])],
-            'fecha_de_nacimiento' => ['required', 'date' ,'before:today'],
+            'genero' => ['required', function ($attribute, $value, $fail) {
+                if (empty($value)) {
+                    $fail('El género es requerido.');
+                    return;
+                }
+
+                $validGenders = ['M', 'F', 'O', 'masculino', 'femenino', 'otro', 'm', 'f', 'o'];
+                $normalizedValue = strtolower(trim($value));
+
+                if (!in_array($normalizedValue, array_map('strtolower', $validGenders)) &&
+                    !in_array(strtoupper($value), ['M', 'F', 'O'])) {
+                    $fail('El género debe ser: Masculino, Femenino, Otro, M, F, o O.');
+                }
+            }],
+            'fecha_de_nacimiento' => ['required', 'bail', function ($attribute, $value, $fail) {
+                if (empty($value)) {
+                    $fail('La fecha de nacimiento es requerida.');
+                    return;
+                }
+
+                if (is_numeric($value)) {
+                    try {
+                        $date = Date::excelToDateTimeObject($value);
+                        if ($date >= now()) {
+                            $fail('La fecha de nacimiento debe ser anterior a hoy.');
+                        }
+                        return;
+                    } catch (\Exception $e) {
+                        $fail('La fecha de nacimiento no tiene un formato válido.');
+                        return;
+                    }
+                }
+
+                try {
+                    $date = Carbon::createFromFormat('d/m/Y', $value);
+                    if ($date >= now()) {
+                        $fail('La fecha de nacimiento debe ser anterior a hoy.');
+                    }
+                } catch (\Exception $e) {
+                    try {
+                        $date = Carbon::parse($value);
+                        if ($date >= now()) {
+                            $fail('La fecha de nacimiento debe ser anterior a hoy.');
+                        }
+                    } catch (\Exception $e) {
+                        $fail('La fecha de nacimiento debe tener el formato d/m/A (ejemplo: 15/03/1990).');
+                    }
+                }
+            }],
             'curp' => ['required', 'string', 'size:18', 'unique:students,curp'],
             'correo' => ['required', 'email', 'max:150', 'unique:students,email'],
-            'telefono' => ['required', 'string', 'max:15'],
+            'telefono' => ['required', 'max:30'],
             'calle' => ['required', 'string', 'max:100'],
             'ciudad' => ['required', 'string', 'max:100'],
             'estado' => ['required', 'string', 'max:100'],
-            'codigo_postal' => ['required', 'string', 'max:6'],
+            'codigo_postal' => ['required', 'max:6'],
             'pais' => ['required', 'string', 'max:100'],
-            'fecha_de_inscripcion' => ['required', 'date', 'before_or_equal:today'],
             'estado_alumno' => ['required', Rule::in(['active', 'inactive', 'graduated', 'suspended', 'pre-registration'])],
-            'tutor' => ['nullable', 'string', 'max:150'],
-            'telefono_del_tutor' => ['nullable', 'string', 'max:15'],
+            'tutor' => ['nullable',  'max:150'],
+            'telefono_del_tutor' => ['nullable',  'max:15'],
             'nombre_de_contacto_de_emergencia' => ['nullable', 'string', 'max:150'],
-            'telefono_del_contacto_de_emergencia' => ['nullable', 'string', 'max:15'],
+            'telefono_del_contacto_de_emergencia' => ['nullable',  'max:30'],
         ];
     }
     public function customValidationMessages(): array
@@ -94,6 +138,62 @@ class StudentImport implements ToModel, WithHeadingRow,  WithValidation
             'curp.unique' => 'La CURP ya está registrada.',
             'correo.unique' => 'El correo ya está registrado.',
         ];
+    }
+
+    private function parseDate($dateString)
+    {
+        if (empty($dateString)) {
+            return null;
+        }
+
+        try {
+            $date = Carbon::createFromFormat('d/m/Y', $dateString);
+            return $date->format('Y-m-d');
+        } catch (\Exception $e) {
+            try {
+                return Carbon::parse($dateString)->format('Y-m-d');
+            } catch (\Exception $e) {
+                return null;
+            }
+        }
+    }
+
+    private function parseGender($gender)
+    {
+        if (empty($gender)) {
+            return 'O';
+        }
+
+        $genderLower = strtolower(trim($gender));
+        $genderMap = [
+            'masculino' => 'M',
+            'femenino' => 'F',
+            'otro' => 'O',
+            'm' => 'M',
+            'f' => 'F',
+            'o' => 'O'
+        ];
+
+        if (isset($genderMap[$genderLower])) {
+            return $genderMap[$genderLower];
+        }
+
+        if (in_array(strtoupper($gender), ['M', 'F', 'O'])) {
+            return strtoupper($gender);
+        }
+
+        return 'O';
+    }
+
+    public function batchSize(): int
+    {
+        return 500;
+    }
+
+
+    public function chunkSize(): int
+    {
+        return 1000;
     }
 
 }
