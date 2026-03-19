@@ -15,9 +15,9 @@ return new class extends Migration
 
         Schema::create('units', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('subject_id')->constrained();
+            $table->foreignId('assignment_id')->constrained()->onDelete('cascade');
             $table->string('name', 100);
-            $table->json('meta');
+            $table->json('meta')->nullable();
             $table->timestamps();
         });
 

@@ -4,55 +4,93 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Payment extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
     protected $fillable = [
-        'payment_id',
-        'user_id',
-        'payment_reference',
-        'amount',
-        'paid_at',
-        'payments_income_id',
+        'folio',
+        'student_id',
+        'payment_method_id',
+        'amount_received',
+        'amount_applied',
+        'change_amount',
+        'payment_date',
+        'receipt_number',
+        'status',
+        'notes',
+        'received_by',
+        'created_by',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
-            'id' => 'integer',
-            'payment_id' => 'integer',
-            'user_id' => 'integer',
-            'amount' => 'decimal:2',
-            'paid_at' => 'datetime',
-            'payments_income_id' => 'integer',
+            'amount_received' => 'decimal:2',
+            'amount_applied'  => 'decimal:2',
+            'change_amount'   => 'decimal:2',
+            'payment_date'    => 'datetime',
         ];
     }
 
-    public function paymentsIncome(): BelongsTo
+    protected static function booted(): void
     {
-        return $this->belongsTo(PaymentsIncome::class);
+        static::creating(function (Payment $payment) {
+            if (empty($payment->folio)) {
+                $payment->folio = static::generateFolio();
+            }
+        });
     }
 
-    public function user(): BelongsTo
+    public static function generateFolio(): string
     {
-        return $this->belongsTo(User::class);
+        $year  = now()->year;
+        $count = static::whereYear('created_at', $year)->count() + 1;
+        return sprintf('PAY-%d-%06d', $year, $count);
     }
 
-    public function payment(): BelongsTo
+    // ── Relaciones ──────────────────────────────────────────────────────────
+
+    public function student(): BelongsTo
     {
-        return $this->belongsTo(PaymentsIncome::class);
+        return $this->belongsTo(Student::class);
+    }
+
+    public function method(): BelongsTo
+    {
+        return $this->belongsTo(PaymentMethod::class, 'payment_method_id');
+    }
+
+    public function receivedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'received_by');
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function reference(): HasOne
+    {
+        return $this->hasOne(PaymentReference::class);
+    }
+
+    public function orders(): BelongsToMany
+    {
+        return $this->belongsToMany(PaymentOrder::class, 'payment_order_payments')
+                    ->withPivot('amount_applied')
+                    ->withTimestamps();
+    }
+
+    public function orderPayments(): HasMany
+    {
+        return $this->hasMany(PaymentOrderPayment::class);
     }
 }

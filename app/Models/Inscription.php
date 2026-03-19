@@ -19,6 +19,7 @@ class Inscription extends Model
         'student_id',
         'group_id',
         'status',
+        'cycle_id',
     ];
 
     /**
@@ -43,5 +44,10 @@ class Inscription extends Model
     public function group(): BelongsTo
     {
         return $this->belongsTo(Group::class);
+    }
+
+    public function cycle(): BelongsTo
+    {
+        return $this->belongsTo(Cycle::class);
     }
 }

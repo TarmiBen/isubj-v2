@@ -17,6 +17,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('student_id')->constrained();
             $table->foreignId('group_id')->constrained();
+            $table->unsignedBigInteger('cycle_id');
             $table->enum('status', ["active","inactive", "down", "abandoned"])->default('active');
             $table->timestamps();
         });

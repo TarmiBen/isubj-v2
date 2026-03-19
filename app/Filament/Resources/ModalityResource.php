@@ -21,6 +21,11 @@ class ModalityResource extends Resource
     protected static ?string $navigationLabel = 'Modalidades';
     protected static ?string $modelLabel = 'Modalidades';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()->can('view_any_modality');
+    }
+
     public static function form(Form $form): Form
     {
         return $form

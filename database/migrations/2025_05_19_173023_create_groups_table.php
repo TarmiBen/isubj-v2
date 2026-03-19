@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('period_id');
             $table->unsignedBigInteger('generation_id');
+            $table->unsignedBigInteger('cycle_id');
             $table->string('code')->unique();
             $table->string('name', 100);
             $table->timestamps();

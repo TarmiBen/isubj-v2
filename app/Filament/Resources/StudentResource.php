@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
+use App\Models\Generation;
 use App\Models\Student;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -24,7 +25,15 @@ class StudentResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationLabel = 'Estudiantes';
-    protected static ?string $modelLabel = 'Estudiantes';
+    protected static ?string $modelLabel = 'Estudiante';
+    protected static ?string $pluralModelLabel = 'Estudiantes';
+    protected static ?string $navigationGroup = 'Gestión de Estudiantes';
+    protected static ?int $navigationSort = 1;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()->can('view_any_student');
+    }
 
     public static function form(Form $form): Form
     {
@@ -126,14 +135,28 @@ class StudentResource extends Resource
                     ->label('Teléfono de contacto de emergencia')
                     ->tel()
                     ->maxLength(15),
+                Forms\Components\Select::make('generation_id')
+                    ->label('Generación')
+                    ->options(Generation::with('career')->get()->mapWithKeys(fn ($g) => [
+                        $g->id => "{$g->number}" . ($g->career ? " - {$g->career->name}" : ''),
+                    ]))
+                    ->searchable()
+                    ->nullable(),
                 Forms\Components\FileUpload::make('photo')
                     ->label('Foto')
                     ->image()
                     ->imageEditor()
-                    ->maxSize(1024)
-                    ->preserveFilenames()
-                    ->directory('students')
+                    ->imageCropAspectRatio('1:1')
+                    ->imageEditorAspectRatios(['1:1'])
+                    ->imageResizeTargetWidth(1200)
+                    ->imageResizeTargetHeight(1200)
+                    ->imageResizeMode('cover')
+                    ->imageResizeUpscale(false)
+                    ->maxSize(15360)
+                    ->disk('public')
+                    ->directory(fn ($record) => $record ? 'students/' . $record->id : 'students/tmp')
                     ->visibility('public')
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                     ->columnSpanFull(),
                 Section::make('Documentos Personales')
                     ->schema([
@@ -167,11 +190,12 @@ class StudentResource extends Resource
         return $table
             ->columns([
 
-                Tables\Columns\ImageColumn::make('photo')
+                Tables\Columns\ImageColumn::make('photo_thumb')
                     ->label('Foto')
+                    ->getStateUsing(fn ($record) => $record->photo_thumb ?: $record->photo)
                     ->circular()
-                    ->width(50)
-                    ->height(50)
+                    ->width(44)
+                    ->height(44)
                     ->disk('public'),
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nombre')
@@ -184,38 +208,6 @@ class StudentResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('gender')
                     ->label('Género'),
-                Tables\Columns\TextColumn::make('date_of_birth')
-                    ->label('Fecha de Nacimiento')
-                    ->date()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('curp')
-                    ->label('CURP')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('email')
-                    ->label('Correo Electrónico')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('phone')
-                    ->label('Teléfono')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('street')
-                    ->label('Calle')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('city')
-                    ->label('Ciudad')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('state')
-                    ->label('Estado')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('postal_code')
-                    ->label('Código Postal')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('city')
-                    ->label('País')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('enrollment_date')
-                    ->label('Fecha de Inscripción')
-                    ->date()
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('status')
                     ->label('Estado')
                     ->badge()
@@ -230,28 +222,6 @@ class StudentResource extends Resource
                     ][$state] ?? $state)
                     ->sortable()
                     ->toggleable(),
-                Tables\Columns\TextColumn::make('guardian_name')
-                    ->label('Nombre del Tutor')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('guardian_phone')
-                    ->label('Teléfono del Tutor')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('emergency_contact_name')
-                    ->label('Nombre de Emergencia')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('emergency_contact_phone')
-                    ->label('Teléfono de Emergencia')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('Fecha de Creación')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Fecha de Actualización')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //
@@ -264,15 +234,15 @@ class StudentResource extends Resource
                     ->icon('heroicon-o-eye')
                     ->label('Ver')
                     ->url(fn ($record) => StudentResource::getUrl('view', ['record' => $record]))
-                    ->openUrlInNewTab(),
+                  ,
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
 
+
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\ForceDeleteBulkAction::make(),
                     Tables\Actions\RestoreBulkAction::make(),
                     Tables\Actions\ExportBulkAction::make()->exporter(StudentExporter::class),
                 ]),
@@ -281,9 +251,7 @@ class StudentResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

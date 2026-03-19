@@ -56,8 +56,10 @@ return [
         'pages' => true,
         'widgets' => true,
         'resources' => true,
-        'custom_permissions' => false,
+        'custom_permissions' => true, // Aquí solo va un booleano (true)
     ],
+
+
 
     'generator' => [
         'option' => 'policies_and_permissions',

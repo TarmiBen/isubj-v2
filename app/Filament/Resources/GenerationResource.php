@@ -21,8 +21,12 @@ class GenerationResource extends Resource
     protected static ?string $navigationLabel = 'Generaciones';
     protected static ?string $modelLabel = 'Generaciones';
 
-
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()->can('view_any_generation');
+    }
 
     public static function form(Form $form): Form
     {

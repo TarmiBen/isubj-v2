@@ -16,7 +16,7 @@ class Unit extends Model
      * @var array
      */
     protected $fillable = [
-        'subject_id',
+        'assignment_id',
         'name',
         'meta',
     ];
@@ -30,13 +30,24 @@ class Unit extends Model
     {
         return [
             'id' => 'integer',
-            'subject_id' => 'integer',
+            'assignment_id' => 'integer',
             'meta' => 'array',
         ];
     }
 
-    public function subject(): BelongsTo
+    public function assignment(): BelongsTo
     {
-        return $this->belongsTo(Subject::class);
+        return $this->belongsTo(Assignment::class);
+    }
+
+    public function documents()
+    {
+        return $this->morphMany(Document::class, 'documentable');
+    }
+
+    public function qualification(){
+        return $this->hasOne(Qualification::class, 'unity_id')->withDefault([
+            'score' => '-'
+        ]);
     }
 }

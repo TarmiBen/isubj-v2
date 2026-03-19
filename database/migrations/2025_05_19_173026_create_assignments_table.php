@@ -18,6 +18,7 @@ return new class extends Migration
             $table->unsignedBigInteger('group_id');
             $table->unsignedBigInteger('teacher_id');
             $table->unsignedBigInteger('subject_id');
+            $table->unsignedBigInteger('cycle_id');
             $table->timestamps();
             $table->softDeletes();
         });

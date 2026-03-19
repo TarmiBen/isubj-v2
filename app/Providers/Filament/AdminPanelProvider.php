@@ -11,6 +11,7 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
+use Filament\Tables;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -68,7 +69,16 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
                 \Filament\Http\Middleware\Authenticate::class,
-            ]);
+            ])
+            ->renderHook(
+                'panels::body.start',
+                function () {
+                    // Configuración global para usar dropdown en acciones
+                    Tables\Table::configureUsing(function (Tables\Table $table) {
+                        return $table->actionsColumnLabel('Acciones');
+                    });
+                }
+            );
     }
 
 }

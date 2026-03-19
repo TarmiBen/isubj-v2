@@ -7,8 +7,10 @@ use App\Filament\Resources\TeacherResource\Pages;
 use App\Filament\Resources\TeacherResource\RelationManagers;
 use App\Models\Teacher;
 use App\Models\User;
+use App\Services\PhotoService;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -18,6 +20,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use App\Mail\ProfesorPasswordMail;
+use App\Mail\TeacherPasswordResetMail;
+use Illuminate\Support\Facades\Password;
 
 class TeacherResource extends Resource
 {
@@ -26,6 +30,11 @@ class TeacherResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationLabel = 'Profesores';
     protected static ?string $modelLabel = 'Profesores';
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()->can('view_any_teacher');
+    }
 
     public static function form(Form $form): Form
     {
@@ -120,10 +129,17 @@ class TeacherResource extends Resource
                     ->label('Foto')
                     ->image()
                     ->imageEditor()
-                    ->maxSize(1024)
-                    ->preserveFilenames()
-                    ->directory('students')
+                    ->imageCropAspectRatio('1:1')
+                    ->imageEditorAspectRatios(['1:1'])
+                    ->imageResizeTargetWidth(1200)
+                    ->imageResizeTargetHeight(1200)
+                    ->imageResizeMode('cover')
+                    ->imageResizeUpscale(false)
+                    ->maxSize(15360)
+                    ->disk('public')
+                    ->directory(fn ($record) => $record ? 'teachers/' . $record->id : 'teachers/tmp')
                     ->visibility('public')
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                     ->columnSpanFull(),
                 Forms\Components\TextInput::make('emergency_contact_name')
                     ->label('Contacto de emergencia')
@@ -142,11 +158,12 @@ class TeacherResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\ImageColumn::make('photo')
+                Tables\Columns\ImageColumn::make('photo_thumb')
                     ->label('Foto')
+                    ->getStateUsing(fn ($record) => $record->photo_thumb ?: $record->photo)
                     ->circular()
-                    ->width(50)
-                    ->height(50)
+                    ->width(44)
+                    ->height(44)
                     ->disk('public'),
                 Tables\Columns\TextColumn::make('employee_number')
                     ->label('Número de empleado')
@@ -243,6 +260,96 @@ class TeacherResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('uploadPhoto')
+                    ->label('Foto')
+                    ->icon('heroicon-o-camera')
+                    ->color('info')
+                    ->modalHeading('Foto del profesor')
+                    ->modalDescription('Sube una imagen cuadrada. Máximo 15 MB.')
+                    ->modalSubmitActionLabel('Guardar foto')
+                    ->form([
+                        Forms\Components\FileUpload::make('photo')
+                            ->label('Imagen')
+                            ->image()
+                            ->imageEditor()
+                            ->imageCropAspectRatio('1:1')
+                            ->imageEditorAspectRatios(['1:1'])
+                            ->imageResizeTargetWidth(1200)
+                            ->imageResizeTargetHeight(1200)
+                            ->imageResizeMode('cover')
+                            ->imageResizeUpscale(false)
+                            ->maxSize(15360)
+                            ->disk('public')
+                            ->directory(fn () => 'teachers/' . request()->route('record', 'tmp'))
+                            ->visibility('public')
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                            ->required(),
+                    ])
+                    ->action(function (Teacher $record, array $data): void {
+                        $photoPath = is_array($data['photo']) ? reset($data['photo']) : $data['photo'];
+
+                        // Mover al directorio correcto si está en tmp
+                        if (str_contains($photoPath, 'teachers/tmp/')) {
+                            $newPath = 'teachers/' . $record->id . '/' . basename($photoPath);
+                            \Illuminate\Support\Facades\Storage::disk('public')->move($photoPath, $newPath);
+                            $photoPath = $newPath;
+                        }
+
+                        PhotoService::optimizeOriginal($photoPath);
+                        $thumbPath = PhotoService::generateThumbnail($photoPath);
+
+                        $record->update([
+                            'photo'       => $photoPath,
+                            'photo_thumb' => $thumbPath,
+                        ]);
+
+                        Notification::make()
+                            ->title('Foto actualizada correctamente')
+                            ->success()
+                            ->send();
+                    }),
+                Tables\Actions\Action::make('resetPassword')
+                    ->label('Restablecer Contraseña')
+                    ->icon('heroicon-o-key')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Restablecer Contraseña del Profesor')
+                    ->modalDescription('Se enviará un correo electrónico al profesor con un enlace para restablecer su contraseña.')
+                    ->modalSubmitActionLabel('Enviar Correo')
+                    ->action(function (Teacher $record) {
+                        // Buscar el usuario asociado al profesor
+                        $user = $record->user;
+
+                        if (!$user) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body('No se encontró una cuenta de usuario asociada a este profesor.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        // Generar token de reset
+                        $token = Password::createToken($user);
+
+                        try {
+                            // Enviar correo de reset
+                            Mail::to($user->email)->send(new TeacherPasswordResetMail($user, $token));
+
+                            Notification::make()
+                                ->title('Correo Enviado')
+                                ->body('Se ha enviado un correo electrónico con las instrucciones para restablecer la contraseña.')
+                                ->success()
+                                ->send();
+
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->title('Error al Enviar Correo')
+                                ->body('No se pudo enviar el correo electrónico. Error: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
                 Tables\Actions\DeleteAction::make(),
 
             ])
