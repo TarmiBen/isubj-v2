@@ -46,7 +46,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->databaseNotifications()
             ->discoverResources(app_path('Filament/Resources'), 'App\\Filament\\Resources')
-            ->discoverPages(app_path('Filament/Pages'), 'App\\Filament\\Pages')
+            ->discoverPages(app_path('Filament/Admin/Pages'), 'App\\Filament\\Admin\\Pages')
             ->pages([
                 Pages\Dashboard::class,
             ])
@@ -70,6 +70,31 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
                 \Filament\Http\Middleware\Authenticate::class,
             ])
+            ->renderHook(
+                'panels::head.end',
+                fn () => new \Illuminate\Support\HtmlString('
+                    <link rel="manifest" href="/manifest-admin.json">
+                    <meta name="theme-color" content="#ffffff">
+                    <meta name="mobile-web-app-capable" content="yes">
+                    <meta name="apple-mobile-web-app-capable" content="yes">
+                    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+                    <meta name="apple-mobile-web-app-title" content="ISUBJ Admin">
+                    <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
+                ')
+            )
+            ->renderHook(
+                'panels::body.end',
+                fn () => new \Illuminate\Support\HtmlString('
+                    <script>
+                        if (\'serviceWorker\' in navigator) {
+                            window.addEventListener(\'load\', () => {
+                                navigator.serviceWorker.register(\'/sw.js\', { scope: \'/admin/\' })
+                                    .catch(() => {});
+                            });
+                        }
+                    </script>
+                ')
+            )
             ->renderHook(
                 'panels::body.start',
                 function () {

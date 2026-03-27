@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Teacher\Pages\Login;
 use App\Filament\Teacher\Pages\RequestPasswordReset;
 use App\Filament\Teacher\Pages\ResetPassword;
+use App\Services\ReservationService;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -20,6 +21,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Illuminate\Support\Facades\Route;
 
 class TeacherPanelProvider extends PanelProvider
 {
@@ -63,6 +65,56 @@ class TeacherPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+            ])
+            ->renderHook(
+                'panels::head.end',
+                fn () => new \Illuminate\Support\HtmlString('
+                    <link rel="manifest" href="/manifest-teacher.json">
+                    <meta name="theme-color" content="#ffffff">
+                    <meta name="mobile-web-app-capable" content="yes">
+                    <meta name="apple-mobile-web-app-capable" content="yes">
+                    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+                    <meta name="apple-mobile-web-app-title" content="ISUBJ Docente">
+                    <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
+                ')
+            )
+            ->renderHook(
+                'panels::body.end',
+                fn () => new \Illuminate\Support\HtmlString('
+                    <script>
+                        if (\'serviceWorker\' in navigator) {
+                            window.addEventListener(\'load\', () => {
+                                navigator.serviceWorker.register(\'/sw.js\', { scope: \'/teacher/\' })
+                                    .catch(() => {});
+                            });
+                        }
+                    </script>
+                ')
+            )
+            ->routes(function () {
+                Route::post('/api/scan', function (\Illuminate\Http\Request $request) {
+                    try {
+                        $request->validate(['qr_code' => 'required|uuid']);
+                        $result = app(ReservationService::class)->processQrScan(
+                            $request->input('qr_code'),
+                            auth()->user(),
+                            $request->file('photo')
+                        );
+                        $action = $result['action'] === 'check_in' ? 'Entrada registrada' : 'Salida registrada';
+                        return response()->json([
+                            'success' => true,
+                            'action' => $action,
+                            'message' => "✓ {$action} correctamente."
+                        ]);
+                    } catch (\Exception $e) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => $e->getMessage()
+                        ], 422);
+                    }
+                })
+                ->middleware(['auth'])
+                ->name('filament.teacher.api.scan');
+            });
     }
 }
