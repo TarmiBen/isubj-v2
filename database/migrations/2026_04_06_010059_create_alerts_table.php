@@ -13,6 +13,13 @@ return new class extends Migration
     {
         Schema::create('alerts', function (Blueprint $table) {
             $table->id();
+            $table->string('title');
+            $table->text('message');
+            $table->string('type'); // tipo de alerta: info, warning, danger, success, etc.
+            $table->string('priority')->default('normal'); // low, normal, high, urgent
+            $table->timestamp('expires_at')->nullable();
+            $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }

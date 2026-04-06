@@ -37,6 +37,13 @@ class Alert extends Model
             ->withTimestamps();
     }
 
+    // Relación con grupos
+    public function groups(): BelongsToMany
+    {
+        return $this->belongsToMany(Group::class, 'alert_group')
+            ->withTimestamps();
+    }
+
     // Scopes
     public function scopeActive($query)
     {

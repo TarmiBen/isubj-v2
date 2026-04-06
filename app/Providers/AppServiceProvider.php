@@ -28,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Registrar Observers
         Qualification::observe(QualificationObserver::class);
+        // Nota: AlertObserver ya no se usa, la lógica está en CreateAlert y EditAlert
 
         LanguageSwitch::configureUsing(function (LanguageSwitch $switch){
             $switch

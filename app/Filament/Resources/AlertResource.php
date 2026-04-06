@@ -26,9 +26,11 @@ class AlertResource extends Resource
                 Forms\Components\Select::make('priority')->label('Prioridad')->options(['low' => 'Baja','medium' => 'Media','high' => 'Alta'])->required()->default('medium'),
                 Forms\Components\DateTimePicker::make('expires_at')->label('Fecha de vencimiento')->helperText('Opcional. Si no se establece, la alerta no vencerá automáticamente.')->native(false)->seconds(false),
                 Forms\Components\Toggle::make('is_active')->label('Activa')->helperText('Solo las alertas activas se mostrarán a los usuarios')->default(true)->inline(false),
+                Forms\Components\Hidden::make('created_by')
+                    ->default(auth()->id()),
             ])->columns(2),
             Forms\Components\Section::make('Destinatarios')->description('Selecciona los grupos. Los maestros de estos grupos recibirán la alerta.')->schema([
-                Forms\Components\Select::make('groups')->label('Grupos')->multiple()->options(Group::orderBy('name')->pluck('name', 'id'))->searchable()->preload()->required()->helperText('Se asignará la alerta a todos los maestros que dan clases en estos grupos')->columnSpanFull(),
+                Forms\Components\Select::make('groups')->label('Grupos')->multiple()->options(Group::orderBy('code')->pluck('code', 'id'))->searchable()->preload()->required()->helperText('Se asignará la alerta a todos los maestros que dan clases en estos grupos')->columnSpanFull(),
                 Forms\Components\Select::make('additional_users')->label('Usuarios adicionales (opcional)')->multiple()->options(User::orderBy('name')->pluck('name', 'id'))->searchable()->helperText('Puedes agregar usuarios específicos además de los maestros de los grupos')->columnSpanFull(),
             ]),
         ]);
@@ -43,6 +45,7 @@ class AlertResource extends Resource
             Tables\Columns\TextColumn::make('viewed_count')->label('Vistas')->badge()->color('success')->formatStateUsing(fn ($record) => $record->viewed_count . ' (' . $record->viewed_percentage . '%)'),
             Tables\Columns\TextColumn::make('closed_count')->label('Cerradas')->badge()->color('gray')->formatStateUsing(fn ($record) => $record->closed_count . ' (' . $record->closed_percentage . '%)'),
             Tables\Columns\IconColumn::make('is_active')->label('Activa')->boolean(),
+            Tables\Columns\TextColumn::make('creator.name')->label('Creado por')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: false),
             Tables\Columns\TextColumn::make('expires_at')->label('Vence')->dateTime('d/m/Y H:i')->sortable()->placeholder('Sin vencimiento')->color(fn ($record) => $record->expires_at && $record->expires_at < now() ? 'danger' : 'gray'),
             Tables\Columns\TextColumn::make('created_at')->label('Creada')->dateTime('d/m/Y H:i')->sortable()->toggleable(isToggledHiddenByDefault: true),
         ])->filters([
@@ -51,6 +54,7 @@ class AlertResource extends Resource
             Tables\Filters\TernaryFilter::make('is_active')->label('Activa'),
             Tables\Filters\Filter::make('expired')->label('Vencidas')->query(fn ($query) => $query->whereNotNull('expires_at')->where('expires_at', '<', now())),
         ])->actions([
+            Tables\Actions\ViewAction::make(),
             Tables\Actions\Action::make('toggle')->label(fn ($record) => $record->is_active ? 'Desactivar' : 'Activar')->icon(fn ($record) => $record->is_active ? 'heroicon-o-eye-slash' : 'heroicon-o-eye')->color(fn ($record) => $record->is_active ? 'warning' : 'success')->action(fn ($record) => $record->update(['is_active' => !$record->is_active]))->requiresConfirmation(),
             Tables\Actions\EditAction::make(),
             Tables\Actions\DeleteAction::make(),
@@ -65,6 +69,7 @@ class AlertResource extends Resource
         return [
             'index' => Pages\ListAlerts::route('/'),
             'create' => Pages\CreateAlert::route('/create'),
+            'view' => Pages\ViewAlert::route('/{record}'),
             'edit' => Pages\EditAlert::route('/{record}/edit'),
         ];
     }

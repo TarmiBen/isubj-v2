@@ -66,6 +66,13 @@ class User extends Authenticatable implements FilamentUser, CanResetPassword
         return $this->morphTo();
     }
 
+    public function alerts()
+    {
+        return $this->belongsToMany(Alert::class, 'alert_user')
+            ->withPivot(['viewed_at', 'closed_at'])
+            ->withTimestamps();
+    }
+
     /*public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
