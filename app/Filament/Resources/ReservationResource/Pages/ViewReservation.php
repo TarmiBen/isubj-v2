@@ -34,10 +34,23 @@ class ViewReservation extends ViewRecord
                             ->date('d/m/Y'),
                         Infolists\Components\TextEntry::make('start_time')
                             ->label('Hora de inicio')
-                            ->time('H:i'),
+                            ->formatStateUsing(function ($state, $record) {
+                                if (!empty($record->meta['all_day'])) {
+                                    return 'Todo el día';
+                                }
+                                return \Carbon\Carbon::parse($state)->format('H:i');
+                            })
+                            ->badge()
+                            ->color(fn ($record) => !empty($record->meta['all_day']) ? 'info' : 'gray'),
                         Infolists\Components\TextEntry::make('end_time')
                             ->label('Hora de fin')
-                            ->time('H:i'),
+                            ->formatStateUsing(function ($state, $record) {
+                                if (!empty($record->meta['all_day'])) {
+                                    return '';
+                                }
+                                return \Carbon\Carbon::parse($state)->format('H:i');
+                            })
+                            ->visible(fn ($record) => empty($record->meta['all_day'])),
                         Infolists\Components\TextEntry::make('status')
                             ->label('Estado')
                             ->badge()
@@ -69,12 +82,12 @@ class ViewReservation extends ViewRecord
                     ->schema([
                         Infolists\Components\TextEntry::make('meta.check_in.at')
                             ->label('Check-in')
-                            ->default('No registrado')
-                            ->dateTime('d/m/Y H:i'),
+                            ->placeholder('No registrado')
+                            ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->format('d/m/Y H:i') : null),
                         Infolists\Components\TextEntry::make('meta.check_out.at')
                             ->label('Check-out')
-                            ->default('No registrado')
-                            ->dateTime('d/m/Y H:i'),
+                            ->placeholder('No registrado')
+                            ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->format('d/m/Y H:i') : null),
                     ])->columns(2)
                     ->visible(fn($record) => $record->agenda->requires_qr),
 

@@ -8,6 +8,8 @@ use App\Models\Reservation;
 use App\Services\ReservationService;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -34,26 +36,107 @@ class ReservationResource extends Resource
                     ->relationship('agenda', 'name')
                     ->required()
                     ->live()
-                    ->searchable(),
+                    ->searchable()
+                    ->afterStateUpdated(function ($state, Set $set) {
+                        if ($state) {
+                            $agenda = \App\Models\Agenda::find($state);
+                            if ($agenda && $agenda->type === 'calendar') {
+                                $set('user_id', null);
+                            }
+                        }
+                    }),
+
+                // Campo de docente - SOLO para salas físicas
                 Forms\Components\Select::make('user_id')
                     ->label('Docente')
                     ->relationship('user', 'name')
-                    ->required()
-                    ->searchable(),
+                    ->required(function (Get $get) {
+                        $agendaId = $get('agenda_id');
+                        if (!$agendaId) return false;
+                        $agenda = \App\Models\Agenda::find($agendaId);
+                        return $agenda && $agenda->type === 'room';
+                    })
+                    ->visible(function (Get $get) {
+                        $agendaId = $get('agenda_id');
+                        if (!$agendaId) return true;
+                        $agenda = \App\Models\Agenda::find($agendaId);
+                        return !$agenda || $agenda->type === 'room';
+                    })
+                    ->searchable()
+                    ->helperText('Solo para salas físicas con docente asignado'),
+
+                // Fecha única - SOLO para salas físicas
                 Forms\Components\DatePicker::make('date')
                     ->label('Fecha')
-                    ->required()
+                    ->required(function (Get $get) {
+                        $agendaId = $get('agenda_id');
+                        if (!$agendaId) return true;
+                        $agenda = \App\Models\Agenda::find($agendaId);
+                        return !$agenda || $agenda->type === 'room';
+                    })
+                    ->visible(function (Get $get) {
+                        $agendaId = $get('agenda_id');
+                        if (!$agendaId) return true;
+                        $agenda = \App\Models\Agenda::find($agendaId);
+                        return !$agenda || $agenda->type === 'room';
+                    })
                     ->minDate(today())
                     ->native(false),
+
+                // Rango de fechas - SOLO para calendarios/agendas
+                Forms\Components\Section::make('Rango de fechas del evento')
+                    ->description('Este evento abarcará varios días')
+                    ->schema([
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\DatePicker::make('start_date')
+                                    ->label('Fecha de inicio')
+                                    ->required()
+                                    ->minDate(today())
+                                    ->native(false)
+                                    ->live(),
+                                Forms\Components\DatePicker::make('end_date')
+                                    ->label('Fecha de fin')
+                                    ->required()
+                                    ->minDate(function (Get $get) {
+                                        return $get('start_date') ?: today();
+                                    })
+                                    ->native(false),
+                            ]),
+                    ])
+                    ->visible(function (Get $get) {
+                        $agendaId = $get('agenda_id');
+                        if (!$agendaId) return false;
+                        $agenda = \App\Models\Agenda::find($agendaId);
+                        return $agenda && $agenda->type === 'calendar';
+                    })
+                    ->collapsible(),
+
+                Forms\Components\Toggle::make('all_day')
+                    ->label('Todo el día')
+                    ->inline(false)
+                    ->live()
+                    ->helperText('El evento abarcará todo el día (00:00 - 23:59)')
+                    ->afterStateUpdated(function ($state, Set $set) {
+                        if ($state) {
+                            $set('start_time', '00:00');
+                            $set('end_time', '23:59');
+                        }
+                    }),
+
                 Forms\Components\TimePicker::make('start_time')
                     ->label('Hora de inicio')
                     ->required()
-                    ->seconds(false),
+                    ->seconds(false)
+                    ->visible(fn (Get $get) => !$get('all_day'))
+                    ->dehydrated(),
                 Forms\Components\TimePicker::make('end_time')
                     ->label('Hora de fin')
                     ->required()
                     ->seconds(false)
-                    ->after('start_time'),
+                    ->after('start_time')
+                    ->visible(fn (Get $get) => !$get('all_day'))
+                    ->dehydrated(),
                 Forms\Components\Textarea::make('purpose')
                     ->label('Propósito de la sesión')
                     ->rows(2)
@@ -80,21 +163,46 @@ class ReservationResource extends Resource
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Docente')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->default('Evento de Agenda')
+                    ->description(fn ($record) => $record->user_id ? null : '📅 Evento de calendario'),
                 Tables\Columns\TextColumn::make('agenda.name')
                     ->label('Agenda')
                     ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->badge()
+                    ->color(fn ($record) => $record->agenda->type === 'calendar' ? 'info' : 'success'),
                 Tables\Columns\TextColumn::make('date')
                     ->label('Fecha')
                     ->date('d/m/Y')
-                    ->sortable(),
+                    ->sortable()
+                    ->description(function ($record) {
+                        if (!empty($record->meta['is_calendar_event']) && !empty($record->meta['event_range'])) {
+                            $start = \Carbon\Carbon::parse($record->meta['event_range']['start'])->format('d/m/Y');
+                            $end = \Carbon\Carbon::parse($record->meta['event_range']['end'])->format('d/m/Y');
+                            return "Evento: {$start} - {$end}";
+                        }
+                        return null;
+                    }),
                 Tables\Columns\TextColumn::make('start_time')
                     ->label('Inicio')
-                    ->time('H:i'),
+                    ->formatStateUsing(function ($state, $record) {
+                        if (!empty($record->meta['all_day'])) {
+                            return 'Todo el día';
+                        }
+                        return \Carbon\Carbon::parse($state)->format('H:i');
+                    })
+                    ->badge()
+                    ->color(fn ($record) => !empty($record->meta['all_day']) ? 'info' : 'gray'),
                 Tables\Columns\TextColumn::make('end_time')
                     ->label('Fin')
-                    ->time('H:i'),
+                    ->formatStateUsing(function ($state, $record) {
+                        if (!empty($record->meta['all_day'])) {
+                            return '';
+                        }
+                        return \Carbon\Carbon::parse($state)->format('H:i');
+                    })
+                    ->default('-'),
                 Tables\Columns\BadgeColumn::make('status')
                     ->label('Estado')
                     ->formatStateUsing(function ($state) {
@@ -198,6 +306,7 @@ class ReservationResource extends Resource
             'create' => Pages\CreateReservation::route('/create'),
             'edit' => Pages\EditReservation::route('/{record}/edit'),
             'view' => Pages\ViewReservation::route('/{record}'),
+            'calendar' => Pages\CalendarReservations::route('/calendar'),
         ];
     }
 }

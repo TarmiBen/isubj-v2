@@ -13,6 +13,10 @@ class ListReservations extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('calendar')
+                ->label('Ver Calendario')
+                ->icon('heroicon-o-calendar')
+                ->url(fn () => ReservationResource::getUrl('calendar')),
             Actions\CreateAction::make(),
         ];
     }

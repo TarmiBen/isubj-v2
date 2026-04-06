@@ -6,6 +6,7 @@ use App\Filament\Exports\AssignmentAttendanceExport;
 use App\Filament\Exports\UnitGradesExport;
 use App\Filament\Resources\AssignmentResource;
 
+use App\Filament\sections\HelpMaterialSection;
 use App\Models\Qualification;
 use App\Models\Unit;
 use Filament\Actions;
@@ -54,8 +55,8 @@ class ViewAssignment extends ViewRecord
             }
         }
 
-        // Cargar las unidades con la relación
-        $this->record->load('units');
+        // Cargar las unidades y documentos de la materia con la relación
+        $this->record->load('units', 'subject.documents');
         $this->units = $this->record->units;
 
         // temp only ajust first
@@ -237,6 +238,8 @@ class ViewAssignment extends ViewRecord
                     ->collapsible()
                     ->icon('heroicon-o-paper-clip')
                     ->description('Documentos relacionados con esta asignatura'),
+
+                HelpMaterialSection::make(),
 
                 Section::make('Unidades de la Asignatura')
                     ->schema([

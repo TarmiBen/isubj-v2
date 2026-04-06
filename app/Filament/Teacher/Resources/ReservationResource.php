@@ -37,7 +37,7 @@ class ReservationResource extends Resource
             ->schema([
                 Forms\Components\Select::make('agenda_id')
                     ->label('Laboratorio / Agenda')
-                    ->options(Agenda::active()->pluck('name', 'id'))
+                    ->options(Agenda::active()->rooms()->pluck('name', 'id'))
                     ->required()
                     ->live()
                     ->searchable(),
@@ -45,6 +45,7 @@ class ReservationResource extends Resource
                     ->label('Fecha')
                     ->required()
                     ->minDate(today())
+                    ->maxDate(today()->addDays(7))
                     ->native(false),
                 Forms\Components\TimePicker::make('start_time')
                     ->label('Hora de inicio')

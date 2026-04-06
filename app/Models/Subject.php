@@ -50,6 +50,11 @@ class Subject extends Model
         return $this->belongsTo(Period::class);
     }
 
+    public function documents()
+    {
+        return $this->morphMany(Document::class, 'documentable');
+    }
+
     // public function getActivitylogOptions() :LogOptions
     // {
     //     return LogOptions::defaults()

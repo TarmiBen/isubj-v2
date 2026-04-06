@@ -103,7 +103,10 @@ class SubjectResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
+                Tables\Actions\Action::make('view')
+                    ->label('Ver')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn (Subject $record): string => static::getUrl('view', ['record' => $record])),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
 
@@ -127,6 +130,7 @@ class SubjectResource extends Resource
         return [
             'index' => Pages\ListSubjects::route('/'),
             'create' => Pages\CreateSubject::route('/create'),
+            'view' => Pages\ViewSubject::route('/{record}'),
             'edit' => Pages\EditSubject::route('/{record}/edit'),
         ];
     }

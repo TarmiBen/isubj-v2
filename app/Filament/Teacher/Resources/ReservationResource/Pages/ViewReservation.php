@@ -67,12 +67,12 @@ class ViewReservation extends ViewRecord
                     ->schema([
                         Infolists\Components\TextEntry::make('meta.check_in.at')
                             ->label('Check-in')
-                            ->default('No registrado')
-                            ->dateTime('d/m/Y H:i'),
+                            ->placeholder('No registrado')
+                            ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->format('d/m/Y H:i') : null),
                         Infolists\Components\TextEntry::make('meta.check_out.at')
                             ->label('Check-out')
-                            ->default('No registrado')
-                            ->dateTime('d/m/Y H:i'),
+                            ->placeholder('No registrado')
+                            ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->format('d/m/Y H:i') : null),
                     ])->columns(2)
                     ->visible(fn($record) => $record->agenda->requires_qr),
 
