@@ -138,7 +138,7 @@ class StudentResource extends Resource
                 Forms\Components\Select::make('generation_id')
                     ->label('Generación')
                     ->options(Generation::with('career')->get()->mapWithKeys(fn ($g) => [
-                        $g->id => "{$g->number}" . ($g->career ? " - {$g->career->name}" : ''),
+                        $g->id => "{$g->number} - ({$g->start_date}/{$g->end_date})"
                     ]))
                     ->searchable()
                     ->nullable(),

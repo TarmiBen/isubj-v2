@@ -36,4 +36,20 @@ Route::view('dashboard', 'dashboard')->middleware(['auth', 'verified'])->name('d
 Route::view('profile', 'profile')->middleware(['auth'])->name('profile');
 
 
+// Ruta de descarga de credenciales generadas
+Route::get('/admin/credenciales/download/{uuid}', function (string $uuid) {
+    $data = \Illuminate\Support\Facades\Cache::get("credencial_{$uuid}");
+
+    if (!$data || !file_exists($data['path'])) {
+        abort(404, 'Credencial no encontrada o expirada.');
+    }
+
+    $path = $data['path'];
+    $name = $data['name'];
+
+    \Illuminate\Support\Facades\Cache::forget("credencial_{$uuid}");
+
+    return response()->download($path, $name)->deleteFileAfterSend(true);
+})->middleware(['auth'])->name('credenciales.download');
+
 require __DIR__.'/auth.php';

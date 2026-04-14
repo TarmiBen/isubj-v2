@@ -50,6 +50,7 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 Pages\Dashboard::class,
                 \App\Filament\Admin\Pages\SendBulkEmail::class,
+                \App\Filament\Admin\Pages\Credenciales::class,
             ])
             ->discoverWidgets(app_path('Filament/Widgets'), 'App\\Filament\\Widgets')
             ->widgets([

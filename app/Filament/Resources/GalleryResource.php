@@ -23,7 +23,7 @@ class GalleryResource extends Resource
             Forms\Components\Section::make('Información de la Galería')->schema([
                 Forms\Components\TextInput::make('title')->label('Título')->required()->maxLength(255)->columnSpanFull(),
                 Forms\Components\Textarea::make('description')->label('Descripción')->rows(3)->columnSpanFull(),
-                Forms\Components\Select::make('galleryable_type')->label('Tipo')->options(['App\\Models\\Reservation' => 'Reservación'])->required()->live()->afterStateUpdated(fn ($set) => $set('galleryable_id', null)),
+                Forms\Components\Select::make('galleryable_type')->label('Tipo')->options(['App\\Models\\Reservation' => 'Reservación'])->live()->afterStateUpdated(fn ($set) => $set('galleryable_id', null)),
                 Forms\Components\Select::make('galleryable_id')->label('Relacionado a')->options(function (Get $get) {
                     $type = $get('galleryable_type');
                     if ($type === 'App\\Models\\Reservation') {
@@ -35,7 +35,7 @@ class GalleryResource extends Resource
                         });
                     }
                     return [];
-                })->required()->searchable()->visible(fn (Get $get) => filled($get('galleryable_type'))),
+                })->searchable()->visible(fn (Get $get) => filled($get('galleryable_type'))),
                 Forms\Components\Toggle::make('is_public')->label('Galería pública')->helperText('Si está activo, la galería será visible para todos')->default(true)->inline(false),
             ])->columns(2),
         ]);
