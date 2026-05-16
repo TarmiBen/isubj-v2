@@ -15,6 +15,8 @@ class MonthlyFeeConfig extends Model
     protected $fillable = [
         'payment_concept_id',
         'generation_id',
+        'career_id',
+        'modality_id',
         'amount',
         'generation_day',
         'due_days',
@@ -46,6 +48,16 @@ class MonthlyFeeConfig extends Model
     public function generation(): BelongsTo
     {
         return $this->belongsTo(Generation::class);
+    }
+
+    public function career(): BelongsTo
+    {
+        return $this->belongsTo(Career::class);
+    }
+
+    public function modality(): BelongsTo
+    {
+        return $this->belongsTo(Modality::class);
     }
 
     public function createdBy(): BelongsTo

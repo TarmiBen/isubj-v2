@@ -23,26 +23,23 @@ class ReportCardExport implements WithEvents
     protected $inscription;
     protected $assignments;
 
-    public function __construct(int $studentId)
+    public function __construct(int $studentId, ?int $inscriptionId = null)
     {
-        // Cargar el estudiante con su última inscripción
-        $this->student = Student::with([
-            'lastInscription.group.period.career',
-            'lastInscription.group.assignments.subject',
-            'lastInscription.group.assignments.finalGrades' => function($query) use ($studentId) {
-                $query->where('student_id', $studentId)
-                      ->orderBy('attempt', 'desc');
-            }
-        ])->findOrFail($studentId);
+        $this->student = Student::findOrFail($studentId);
 
-        $this->inscription = $this->student->lastInscription;
+        if ($inscriptionId) {
+            $this->inscription = $this->student->inscriptions()
+                ->with(['group.period.career'])
+                ->findOrFail($inscriptionId);
+        } else {
+            $this->inscription = $this->student->lastInscription;
+        }
 
-        // Obtener las asignaturas con sus calificaciones finales
         if ($this->inscription) {
             $this->assignments = $this->inscription->group->assignments()
-                ->with(['subject', 'finalGrades' => function($query) use ($studentId) {
+                ->with(['subject', 'finalGrades' => function ($query) use ($studentId) {
                     $query->where('student_id', $studentId)
-                          ->orderBy('attempt', 'desc');
+                          ->orderByDesc('attempt');
                 }])
                 ->get();
         } else {

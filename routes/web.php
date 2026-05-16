@@ -20,7 +20,7 @@ Route::get('/admin/surveys/{survey}/pdf', [SurveyPdfController::class, 'download
     ->middleware(['auth'])
     ->name('surveys.pdf');
 
-// Ruta para descargar boleta de calificaciones
+// Ruta para descargar boleta de calificaciones (última inscripción)
 Route::get('/student/{studentId}/download-report-card', function($studentId) {
     $student = \App\Models\Student::findOrFail($studentId);
     $fileName = 'Boleta_' . $student->student_number . '_' . date('Y-m-d') . '.xlsx';
@@ -30,6 +30,17 @@ Route::get('/student/{studentId}/download-report-card', function($studentId) {
         $fileName
     );
 })->middleware(['auth'])->name('student.download-report-card');
+
+// Ruta para descargar boleta de una inscripción específica
+Route::get('/student/{studentId}/download-report-card/{inscriptionId}', function($studentId, $inscriptionId) {
+    $student = \App\Models\Student::findOrFail($studentId);
+    $fileName = 'Boleta_' . $student->student_number . '_' . date('Y-m-d') . '.xlsx';
+
+    return \Maatwebsite\Excel\Facades\Excel::download(
+        new \App\Filament\Exports\ReportCardExport($studentId, (int) $inscriptionId),
+        $fileName
+    );
+})->middleware(['auth'])->name('student.download-report-card-inscription');
 
 Route::view('dashboard', 'dashboard')->middleware(['auth', 'verified'])->name('dashboard');
 

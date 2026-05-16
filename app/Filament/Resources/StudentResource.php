@@ -148,10 +148,6 @@ class StudentResource extends Resource
                     ->imageEditor()
                     ->imageCropAspectRatio('1:1')
                     ->imageEditorAspectRatios(['1:1'])
-                    ->imageResizeTargetWidth(1200)
-                    ->imageResizeTargetHeight(1200)
-                    ->imageResizeMode('cover')
-                    ->imageResizeUpscale(false)
                     ->maxSize(15360)
                     ->disk('public')
                     ->directory(fn ($record) => $record ? 'students/' . $record->id : 'students/tmp')
@@ -261,6 +257,7 @@ class StudentResource extends Resource
             'create' => Pages\CreateStudent::route('/create'),
             'edit' => Pages\EditStudent::route('/{record}/edit'),
             'view' => Pages\ViewStudent::route('/{record}/view'),
+            'grade-history' => Pages\StudentGradeHistory::route('/{record}/grade-history'),
         ];
     }
 

@@ -6,6 +6,8 @@ use App\Filament\Resources\MonthlyFeeConfigResource\Pages;
 use App\Models\MonthlyFeeConfig;
 use App\Models\PaymentConcept;
 use App\Models\Generation;
+use App\Models\Career;
+use App\Models\Modality;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -43,8 +45,16 @@ class MonthlyFeeConfigResource extends Resource
                         }
                     }),
                 Forms\Components\Select::make('generation_id')
-                    ->label('Generación (null = todas)')
+                    ->label('Generación (vacío = todas)')
                     ->options(Generation::pluck('number', 'id'))
+                    ->searchable()->nullable(),
+                Forms\Components\Select::make('career_id')
+                    ->label('Carrera (vacío = todas)')
+                    ->options(Career::where('status', 'active')->pluck('name', 'id'))
+                    ->searchable()->nullable(),
+                Forms\Components\Select::make('modality_id')
+                    ->label('Modalidad (vacío = todas)')
+                    ->options(Modality::where('status', 'active')->pluck('name', 'id'))
                     ->searchable()->nullable(),
                 Forms\Components\TextInput::make('amount')
                     ->label('Monto mensual')->required()->numeric()->prefix('$'),
@@ -82,7 +92,19 @@ class MonthlyFeeConfigResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('concept.name')->label('Concepto')->searchable(),
-                Tables\Columns\TextColumn::make('generation.name')->label('Generación')->default('Todas'),
+                Tables\Columns\TextColumn::make('generation_id')
+                    ->label('Generación')
+                    ->formatStateUsing(fn ($state, $record) => $record->generation?->number
+                        ? 'Generación ' . $record->generation->number
+                        : 'Todas'),
+                Tables\Columns\TextColumn::make('career.name')
+                    ->label('Carrera')
+                    ->formatStateUsing(fn ($state, $record) => $record->career?->name ?? 'Todas')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('modality.name')
+                    ->label('Modalidad')
+                    ->formatStateUsing(fn ($state, $record) => $record->modality?->name ?? 'Todas')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('amount')->label('Monto')->money('MXN'),
                 Tables\Columns\TextColumn::make('generation_day')->label('Día gen.'),
                 Tables\Columns\TextColumn::make('due_days')->label('Días vcto.'),

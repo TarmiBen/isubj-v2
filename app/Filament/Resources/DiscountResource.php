@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\DiscountResource\Pages;
 use App\Models\Discount;
+use App\Models\Student;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -51,6 +52,23 @@ class DiscountResource extends Resource
                     ])->nullable(),
             ])->columns(3),
 
+            Forms\Components\Section::make('Descuento Individual')->schema([
+                Forms\Components\Select::make('student_id')
+                    ->label('Alumno específico (vacío = todos)')
+                    ->options(Student::query()->orderBy('name')->get()->mapWithKeys(fn ($s) => [
+                        $s->id => "{$s->student_number} - {$s->full_name}"
+                    ]))
+                    ->searchable()
+                    ->nullable()
+                    ->live()
+                    ->helperText('Si seleccionas un alumno, este descuento SOLO se aplicará a él de forma automática'),
+                Forms\Components\Toggle::make('is_single_use')
+                    ->label('Uso único')
+                    ->helperText('Se aplicará solo una vez y no se podrá reutilizar')
+                    ->visible(fn ($get) => $get('student_id') !== null),
+            ])->columns(2)
+                ->description('Crea descuentos personalizados para alumnos específicos. Son automáticos y no reutilizables.'),
+
             Forms\Components\Section::make('Condiciones')->schema([
                 Forms\Components\Select::make('condition_type')->label('Condición')->required()
                     ->options([
@@ -79,7 +97,13 @@ class DiscountResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('code')->label('Código')->searchable(),
-                Tables\Columns\TextColumn::make('name')->label('Nombre')->searchable(),
+                Tables\Columns\TextColumn::make('name')->label('Nombre')->searchable()->limit(30),
+                Tables\Columns\TextColumn::make('student.full_name')
+                    ->label('Alumno')
+                    ->formatStateUsing(fn ($state, $record) => $record->student_id ? $state : 'Todos')
+                    ->searchable()
+                    ->badge()
+                    ->color(fn ($record) => $record->student_id ? 'success' : 'gray'),
                 Tables\Columns\BadgeColumn::make('condition_type')->label('Condición')
                     ->colors([
                         'success' => 'referral',
@@ -93,8 +117,8 @@ class DiscountResource extends Resource
                         $record->value_type === 'percentage' ? "{$state}%" : "\${$state}"
                     ),
                 Tables\Columns\TextColumn::make('used_count')->label('Usos'),
+                Tables\Columns\IconColumn::make('is_single_use')->label('Único')->boolean(),
                 Tables\Columns\IconColumn::make('is_automatic')->label('Auto')->boolean(),
-                Tables\Columns\IconColumn::make('is_recurring')->label('Recurrente')->boolean(),
                 Tables\Columns\IconColumn::make('active')->label('Activo')->boolean(),
             ])
             ->filters([
@@ -102,6 +126,10 @@ class DiscountResource extends Resource
                     ->options(['manual'=>'Manual','referral'=>'Referido','scholarship'=>'Beca','early_payment'=>'Pronto pago','promo'=>'Promo']),
                 Tables\Filters\TernaryFilter::make('active')->label('Activo'),
                 Tables\Filters\TernaryFilter::make('is_automatic')->label('Automático'),
+                Tables\Filters\Filter::make('individual')
+                    ->label('Solo descuentos individuales')
+                    ->query(fn ($query) => $query->whereNotNull('student_id')),
+                Tables\Filters\TernaryFilter::make('is_single_use')->label('Uso único'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

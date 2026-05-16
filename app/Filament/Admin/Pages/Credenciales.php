@@ -158,13 +158,15 @@ class Credenciales extends Page implements HasForms
         $templatePath = public_path('credencial.jpg');
         $img          = imagecreatefromjpeg($templatePath);
 
-        $font  = '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf';
+        $font  = public_path('fonts/LiberationSans-Bold.ttf');
         $white = imagecolorallocate($img, 255, 255, 255);
 
         // ── Foto del alumno ──────────────────────────────
         // Slot: x:737, y:277, máx 234×260 — alineada al fondo del slot
         if ($student->photo && Storage::disk('public')->exists($student->photo)) {
             $photoPath = Storage::disk('public')->path($student->photo);
+            $info      = @getimagesize($photoPath);
+            $isPng     = $info && ($info[2] ?? 0) === IMAGETYPE_PNG;
             $photoImg  = $this->loadImage($photoPath);
             if ($photoImg) {
                 $slotX = 737; $slotY = 277; $maxW = 234; $maxH = 260;
@@ -177,7 +179,24 @@ class Credenciales extends Page implements HasForms
                 $destY = $slotY + ($maxH - $nh);
 
                 $resized = imagecreatetruecolor($nw, $nh);
+
+                if ($isPng) {
+                    // Inicializar con transparencia total para respetar el canal alfa del PNG
+                    imagealphablending($resized, false);
+                    imagesavealpha($resized, true);
+                    $transparent = imagecolorallocatealpha($resized, 0, 0, 0, 127);
+                    imagefill($resized, 0, 0, $transparent);
+                } else {
+                    $whiteBg = imagecolorallocate($resized, 255, 255, 255);
+                    imagefill($resized, 0, 0, $whiteBg);
+                }
+
+                imagealphablending($resized, true);
                 imagecopyresampled($resized, $photoImg, 0, 0, 0, 0, $nw, $nh, $sw, $sh);
+
+                // Alpha blending activado en la plantilla para que los píxeles
+                // transparentes del PNG dejen ver el fondo de la credencial
+                imagealphablending($img, true);
                 imagecopy($img, $resized, $slotX, $destY, 0, 0, $nw, $nh);
                 imagedestroy($photoImg);
                 imagedestroy($resized);
@@ -225,7 +244,7 @@ class Credenciales extends Page implements HasForms
         int      $maxH,
         int      $color
     ): void {
-        $fontSize = 15;
+        $fontSize = 18;
 
         $bbox  = imagettfbbox($fontSize, 0, $font, $text);
         $tw    = $bbox[2] - $bbox[0];
@@ -250,7 +269,7 @@ class Credenciales extends Page implements HasForms
         int      $maxH,
         int      $color
     ): void {
-        $fontSize = 15;
+        $fontSize = 18;
 
         $bbox  = imagettfbbox($fontSize, 0, $font, $text);
         $th    = abs($bbox[1] - $bbox[7]);
@@ -273,7 +292,7 @@ class Credenciales extends Page implements HasForms
         int      $maxH,
         int      $color
     ): void {
-        $fontSize = 15;
+        $fontSize = 18;
         $words    = explode(' ', $text);
         $lines    = [];
         $current  = '';

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Agreement;
 use App\Models\Discount;
 use App\Models\DiscountApplication;
 use App\Models\Inscription;
@@ -39,7 +40,7 @@ class GenerateMonthlyFees extends Command
         $systemUserId = 1;
 
         $configs = MonthlyFeeConfig::active()
-            ->with(['concept', 'generation'])
+            ->with(['concept', 'generation', 'career', 'modality'])
             ->when($configId, fn ($q) => $q->where('id', $configId))
             ->get();
 
@@ -70,10 +71,28 @@ class GenerateMonthlyFees extends Command
                         $s->where('generation_id', $config->generation_id)
                     )
                 )
+                // Filtrar por carrera si está configurada
+                ->when($config->career_id, fn ($q) =>
+                    $q->whereHas('group.period', fn ($p) =>
+                        $p->where('career_id', $config->career_id)
+                    )
+                )
+                // Filtrar por modalidad si está configurada
+                ->when($config->modality_id, fn ($q) =>
+                    $q->whereHas('group.period.career', fn ($c) =>
+                        $c->where('modality_id', $config->modality_id)
+                    )
+                )
                 ->with('student')
                 ->get();
 
-            $this->line("  Config #{$config->id} ({$config->concept->name}): {$inscriptions->count()} alumnos");
+            $filterInfo = collect([
+                $config->generation_id ? "Gen: {$config->generation->number}" : null,
+                $config->career_id ? "Carrera: {$config->career->name}" : null,
+                $config->modality_id ? "Modalidad: {$config->modality->name}" : null,
+            ])->filter()->implode(', ') ?: 'Todas';
+
+            $this->line("  Config #{$config->id} ({$config->concept->name}) [{$filterInfo}]: {$inscriptions->count()} alumnos");
 
             foreach ($inscriptions as $inscription) {
                 $student = $inscription->student;
@@ -91,7 +110,35 @@ class GenerateMonthlyFees extends Command
                 }
 
                 if ($dryRun) {
-                    $this->line("    [DRY] Alumno {$student->id}: {$student->full_name} → \${$config->amount}");
+                    // Calcular descuentos para mostrar en el dry-run
+                    [$discountAmount, $applicableDiscounts] = $this->calculateDiscounts(
+                        $student, $config->amount, $config->concept
+                    );
+
+                    $subtotal = (float) $config->amount;
+                    $total    = max(0, $subtotal - $discountAmount);
+
+                    // Información adicional del estudiante
+                    $extraInfo = $this->getStudentExtraInfo($student);
+
+                    $discountInfo = '';
+                    if ($discountAmount > 0) {
+                        $discountInfo = " | Descuento: \${$discountAmount} → Total: \${$total}";
+                        $this->line("    [DRY] Alumno {$student->id}: {$student->full_name} → Subtotal: \${$config->amount}{$discountInfo}");
+                        foreach ($applicableDiscounts as $discount) {
+                            $this->line("        • {$discount['reason']} (-\${$discount['amount']})");
+                        }
+                    } else {
+                        $this->line("    [DRY] Alumno {$student->id}: {$student->full_name} → Subtotal: \${$config->amount} (sin descuentos)");
+                    }
+
+                    // Mostrar información adicional si existe
+                    if (!empty($extraInfo)) {
+                        foreach ($extraInfo as $info) {
+                            $this->line("        ℹ️  {$info}");
+                        }
+                    }
+
                     $generated++;
                     continue;
                 }
@@ -110,6 +157,27 @@ class GenerateMonthlyFees extends Command
 
                         $subtotal = (float) $config->amount;
                         $total    = max(0, $subtotal - $discountAmount);
+
+                        // Información adicional del estudiante
+                        $extraInfo = $this->getStudentExtraInfo($student);
+
+                        // Mostrar información de descuentos aplicados
+                        if ($discountAmount > 0) {
+                            $this->line("    ✓ Alumno {$student->id}: {$student->full_name}");
+                            $this->line("      Subtotal: \${$subtotal} | Descuento: \${$discountAmount} → Total: \${$total}");
+                            foreach ($applicableDiscounts as $discount) {
+                                $this->line("        • {$discount['reason']} (-\${$discount['amount']})");
+                            }
+                        } else {
+                            $this->line("    ✓ Alumno {$student->id}: {$student->full_name} → \${$total} (sin descuentos)");
+                        }
+
+                        // Mostrar información adicional si existe
+                        if (!empty($extraInfo)) {
+                            foreach ($extraInfo as $info) {
+                                $this->line("        ℹ️  {$info}");
+                            }
+                        }
 
                         // Crear PaymentOrder
                         $order = PaymentOrder::create([
@@ -161,6 +229,11 @@ class GenerateMonthlyFees extends Command
 
                             // Incrementar used_count
                             Discount::where('id', $discount['id'])->increment('used_count');
+
+                            // Si es de uso único, marcarlo como usado
+                            if ($discount['is_single_use'] ?? false) {
+                                Discount::where('id', $discount['id'])->update(['used_at' => now()]);
+                            }
                         }
 
                         $generated++;
@@ -187,8 +260,39 @@ class GenerateMonthlyFees extends Command
         $totalDiscount     = 0.0;
         $appliedDiscounts  = [];
 
-        // 1. Descuentos automáticos del catálogo que aplican a mensualidades
+        // 1. Descuentos individuales específicos del alumno (prioridad máxima)
+        $individualDiscounts = Discount::forStudent($student->id)
+            ->where(fn ($q) => $q->whereNull('applies_to_type')->orWhere('applies_to_type', $concept->type))
+            ->get();
+
+        foreach ($individualDiscounts as $discount) {
+            if (!$discount->isValid()) continue;
+
+            $amount = $discount->calculateAmount($subtotal);
+            $totalDiscount += $amount;
+
+            $discountType = match($discount->value_type) {
+                'percentage' => "{$discount->value}%",
+                'fixed' => "Monto fijo",
+                default => ""
+            };
+
+            $singleUseLabel = $discount->is_single_use ? " [Uso único]" : "";
+
+            $appliedDiscounts[] = [
+                'id'         => $discount->id,
+                'amount'     => $amount,
+                'percentage' => $discount->value_type === 'percentage' ? $discount->value : null,
+                'reason'     => "Descuento individual: {$discount->name} ({$discountType}){$singleUseLabel}",
+                'is_single_use' => $discount->is_single_use,
+            ];
+
+            if (!$discount->is_stackable) break;
+        }
+
+        // 2. Descuentos automáticos del catálogo que aplican a mensualidades (sin student_id)
         $autoDiscounts = Discount::automatic()
+            ->whereNull('student_id') // Solo descuentos generales
             ->where(fn ($q) => $q->whereNull('applies_to_type')->orWhere('applies_to_type', $concept->type))
             ->get();
 
@@ -198,17 +302,24 @@ class GenerateMonthlyFees extends Command
             $amount = $discount->calculateAmount($subtotal);
             $totalDiscount += $amount;
 
+            $discountType = match($discount->value_type) {
+                'percentage' => "{$discount->value}%",
+                'fixed' => "Monto fijo",
+                default => ""
+            };
+
             $appliedDiscounts[] = [
                 'id'         => $discount->id,
                 'amount'     => $amount,
                 'percentage' => $discount->value_type === 'percentage' ? $discount->value : null,
-                'reason'     => "Descuento automático: {$discount->name}",
+                'reason'     => "Descuento automático: {$discount->name} ({$discountType})",
+                'is_single_use' => false,
             ];
 
             if (!$discount->is_stackable) break;
         }
 
-        // 2. Descuentos por referidos activos (aplican a mensualidades)
+        // 3. Descuentos por referidos activos (aplican a mensualidades)
         if ($concept->type === 'mensualidad') {
             $referrals = Referral::where('referrer_student_id', $student->id)
                 ->where('status', 'active')
@@ -225,15 +336,65 @@ class GenerateMonthlyFees extends Command
                 $amount = $discount->calculateAmount($subtotal);
                 $totalDiscount += $amount;
 
+                $discountType = match($discount->value_type) {
+                    'percentage' => "{$discount->value}%",
+                    'fixed' => "Monto fijo",
+                    default => ""
+                };
+
                 $appliedDiscounts[] = [
                     'id'         => $discount->id,
                     'amount'     => $amount,
                     'percentage' => $discount->value_type === 'percentage' ? $discount->value : null,
-                    'reason'     => "Descuento referido: alumno #{$referral->referred_student_id}",
+                    'reason'     => "Descuento por referido: {$referral->referred->full_name} ({$discountType})",
+                    'is_single_use' => false,
                 ];
             }
         }
 
         return [min($totalDiscount, $subtotal), $appliedDiscounts];
+    }
+
+    /**
+     * Obtiene información adicional del estudiante (convenios, referidos que hizo, etc.)
+     */
+    private function getStudentExtraInfo(Student $student): array
+    {
+        $info = [];
+
+        // Convenios activos
+        $activeAgreements = Agreement::where('student_id', $student->id)
+            ->whereIn('status', ['active', 'approved'])
+            ->get();
+
+        if ($activeAgreements->isNotEmpty()) {
+            foreach ($activeAgreements as $agreement) {
+                $remaining = $agreement->total_amount - $agreement->paid_amount;
+                $info[] = "Convenio activo: {$agreement->folio} (Balance: \${$remaining})";
+            }
+        }
+
+        // Referidos que hizo este alumno (activos)
+        $referralsMade = Referral::where('referrer_student_id', $student->id)
+            ->where('status', 'active')
+            ->with('referred')
+            ->get();
+
+        if ($referralsMade->isNotEmpty()) {
+            $referredNames = $referralsMade->map(fn($r) => $r->referred->full_name)->implode(', ');
+            $info[] = "Ha referido {$referralsMade->count()} alumno(s): {$referredNames}";
+        }
+
+        // Quién lo refirió a él
+        $referredBy = Referral::where('referred_student_id', $student->id)
+            ->where('status', 'active')
+            ->with('referrer')
+            ->first();
+
+        if ($referredBy) {
+            $info[] = "Referido por: {$referredBy->referrer->full_name}";
+        }
+
+        return $info;
     }
 }

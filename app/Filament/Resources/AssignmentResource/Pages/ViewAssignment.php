@@ -144,6 +144,7 @@ class ViewAssignment extends ViewRecord
         $students = $this->getStudents();
         $this->record->students = $students;
 
+
         return $infolist
             ->schema([
                 Section::make('Información General de la Asignatura')
@@ -597,10 +598,9 @@ class ViewAssignment extends ViewRecord
 
     public function getStudents()
     {
-        return $this->record->group->inscriptions()
+        return $this->record->group->inscriptions()->where('status', 'active')
             ->with(['student' => function ($query) {
-                $query->where('status', 'active')
-                    ->orderBy('last_name1')
+                $query->orderBy('last_name1')
                     ->orderBy('last_name2')
                     ->orderBy('name')
                     ->select('id', 'name', 'last_name1', 'last_name2');

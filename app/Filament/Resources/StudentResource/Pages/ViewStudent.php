@@ -33,6 +33,11 @@ class ViewStudent extends ViewRecord
 
         $actions[] = CommonActions::uploadDocumentModel($this->record);
         $actions[] = CommonActions::IconReportCardStudent($this->record->id);
+        $actions[] = Action::make('gradeHistory')
+            ->label('Ver Historial')
+            ->icon('heroicon-o-clock')
+            ->color('gray')
+            ->url(StudentResource::getUrl('grade-history', ['record' => $this->record]));
 
         return $actions;
     }

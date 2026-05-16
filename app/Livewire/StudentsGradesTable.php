@@ -285,6 +285,7 @@ class StudentsGradesTable extends Component
 
     public function render()
     {
+
         return view('livewire.students-grades-table');
     }
 }

@@ -10,8 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Modality extends Model
 {
-    use HasFactory; // LogsActivity;
-    use softDeletes;
+    use HasFactory, SoftDeletes; // LogsActivity;
 
     /**
      * The attributes that are mass assignable.

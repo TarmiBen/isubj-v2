@@ -86,9 +86,21 @@ class PhotoService
         }
 
         $dest = imagecreatetruecolor($destSize, $destSize);
+
+        if ($info[2] === IMAGETYPE_PNG) {
+            imagealphablending($dest, false);
+            imagesavealpha($dest, true);
+            imagefill($dest, 0, 0, imagecolorallocatealpha($dest, 0, 0, 0, 127));
+            imagealphablending($dest, true);
+        }
+
         imagecopyresampled($dest, $src, 0, 0, $cropX, $cropY, $destSize, $destSize, $cropSize, $cropSize);
 
-        imagejpeg($dest, $fullPath, 85);
+        match ($info[2]) {
+            IMAGETYPE_PNG  => imagepng($dest, $fullPath, 6),
+            IMAGETYPE_WEBP => imagewebp($dest, $fullPath, 85),
+            default        => imagejpeg($dest, $fullPath, 85),
+        };
 
         imagedestroy($src);
         imagedestroy($dest);

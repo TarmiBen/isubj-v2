@@ -19,14 +19,17 @@ class Discount extends Model
         'value_type',
         'value',
         'applies_to_type',
+        'student_id',
         'condition_type',
         'is_automatic',
         'is_stackable',
         'is_recurring',
+        'is_single_use',
         'valid_from',
         'valid_until',
         'max_uses',
         'used_count',
+        'used_at',
         'active',
         'created_by',
     ];
@@ -38,8 +41,10 @@ class Discount extends Model
             'is_automatic' => 'boolean',
             'is_stackable'  => 'boolean',
             'is_recurring' => 'boolean',
+            'is_single_use' => 'boolean',
             'valid_from'   => 'date',
             'valid_until'  => 'date',
+            'used_at'      => 'datetime',
             'active'       => 'boolean',
         ];
     }
@@ -47,6 +52,11 @@ class Discount extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function student(): BelongsTo
+    {
+        return $this->belongsTo(Student::class);
     }
 
     public function applications(): HasMany
@@ -69,12 +79,18 @@ class Discount extends Model
         return $query->where('is_automatic', true)->where('active', true);
     }
 
+    public function scopeForStudent($query, $studentId)
+    {
+        return $query->where('student_id', $studentId)->where('active', true);
+    }
+
     public function isValid(): bool
     {
         if (!$this->active) return false;
         if ($this->valid_from && now()->lt($this->valid_from)) return false;
         if ($this->valid_until && now()->gt($this->valid_until)) return false;
         if ($this->max_uses && $this->used_count >= $this->max_uses) return false;
+        if ($this->is_single_use && $this->used_at) return false; // Ya fue usado
         return true;
     }
 

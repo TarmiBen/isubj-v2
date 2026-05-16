@@ -20,15 +20,34 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const resultDiv = document.getElementById('result');
+            const fallbackIndexUrl = @js(\App\Filament\Teacher\Resources\ReservationResource::getUrl('index'));
+
+            function closeScanner() {
+                try {
+                    html5QrcodeScanner.clear();
+                } catch (_) {
+                    // No-op: el scanner puede ya estar detenido.
+                }
+            }
+
+            function showStatus(type, message) {
+                const styles = {
+                    info: 'mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200',
+                    success: 'mt-4 p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200',
+                    error: 'mt-4 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200',
+                };
+
+                resultDiv.className = styles[type] ?? styles.info;
+                resultDiv.innerHTML = `<p class="font-semibold">${message}</p>`;
+                resultDiv.classList.remove('hidden');
+            }
 
             function onScanSuccess(decodedText, decodedResult) {
                 // Detener el scanner temporalmente
                 html5QrcodeScanner.pause(true);
 
                 // Mostrar loading
-                resultDiv.className = 'mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800';
-                resultDiv.innerHTML = '<p class="text-blue-800 dark:text-blue-200">Procesando...</p>';
-                resultDiv.classList.remove('hidden');
+                showStatus('info', 'Procesando...');
 
                 // Enviar el código escaneado al servidor
                 fetch('{{ route("filament.teacher.api.scan") }}', {
@@ -42,34 +61,27 @@
                         qr_code: decodedText
                     })
                 })
-                .then(response => response.json())
+                .then(async response => {
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.message || 'No se pudo procesar el escaneo.');
+                    }
+                    return data;
+                })
                 .then(data => {
                     if (data.success) {
-                        resultDiv.className = 'mt-4 p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800';
-                        resultDiv.innerHTML = `
-                            <div class="flex items-center gap-2">
-                                <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <p class="text-green-800 dark:text-green-200 font-semibold">${data.message}</p>
-                            </div>
-                        `;
+                        const successMessage = `${data.message} Estado: ${data.reservation_status ?? 'actualizado'}.`;
+                        showStatus('success', successMessage);
+                        alert(successMessage);
+                        closeScanner();
 
-                        // Reanudar scanner después de 3 segundos
+                        // Redirigir a la reservación confirmada (o listado como fallback)
                         setTimeout(() => {
-                            resultDiv.classList.add('hidden');
-                            html5QrcodeScanner.resume();
-                        }, 3000);
+                            window.location.href = data.view_url || data.index_url || fallbackIndexUrl;
+                        }, 900);
                     } else {
-                        resultDiv.className = 'mt-4 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800';
-                        resultDiv.innerHTML = `
-                            <div class="flex items-center gap-2">
-                                <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                                </svg>
-                                <p class="text-red-800 dark:text-red-200 font-semibold">${data.message}</p>
-                            </div>
-                        `;
+                        showStatus('error', data.message || 'No se pudo confirmar la reservación.');
+                        alert(data.message || 'No se pudo confirmar la reservación.');
 
                         // Reanudar scanner después de 3 segundos
                         setTimeout(() => {
@@ -79,10 +91,9 @@
                     }
                 })
                 .catch(error => {
-                    resultDiv.className = 'mt-4 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800';
-                    resultDiv.innerHTML = `
-                        <p class="text-red-800 dark:text-red-200">Error: ${error.message}</p>
-                    `;
+                    const message = `Error: ${error.message}`;
+                    showStatus('error', message);
+                    alert(message);
 
                     setTimeout(() => {
                         resultDiv.classList.add('hidden');

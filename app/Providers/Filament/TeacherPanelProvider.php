@@ -101,10 +101,15 @@ class TeacherPanelProvider extends PanelProvider
                             $request->file('photo')
                         );
                         $action = $result['action'] === 'check_in' ? 'Entrada registrada' : 'Salida registrada';
+                        $reservation = $result['reservation'];
                         return response()->json([
                             'success' => true,
                             'action' => $action,
-                            'message' => "✓ {$action} correctamente."
+                            'message' => "✓ {$action} correctamente.",
+                            'reservation_id' => $reservation->id,
+                            'reservation_status' => $reservation->status,
+                            'view_url' => \App\Filament\Teacher\Resources\ReservationResource::getUrl('view', ['record' => $reservation]),
+                            'index_url' => \App\Filament\Teacher\Resources\ReservationResource::getUrl('index'),
                         ]);
                     } catch (\Exception $e) {
                         return response()->json([
@@ -114,7 +119,7 @@ class TeacherPanelProvider extends PanelProvider
                     }
                 })
                 ->middleware(['auth'])
-                ->name('filament.teacher.api.scan');
+                ->name('api.scan');
             });
     }
 }
