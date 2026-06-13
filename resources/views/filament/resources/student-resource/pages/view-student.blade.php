@@ -482,6 +482,13 @@
                                                 @else
                                                     <span class="text-gray-300 dark:text-gray-600 text-xs">-</span>
                                                 @endif
+                                                <div class="mt-1">
+                                                    <a href="{{ route('student.download-informative-report', ['studentId' => $record->id, 'unitIndex' => $i]) }}"
+                                                       title="Descargar formato informativo de calificaciones - Unidad {{ $i }}"
+                                                       class="inline-flex items-center justify-center w-6 h-6 rounded bg-green-600 hover:bg-green-700 text-white transition-colors">
+                                                        <x-heroicon-o-arrow-down-tray class="w-3.5 h-3.5" />
+                                                    </a>
+                                                </div>
                                             </td>
                                         @endfor
                                         <td class="px-6 py-3 whitespace-nowrap text-center">

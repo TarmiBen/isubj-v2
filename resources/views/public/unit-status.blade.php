@@ -26,7 +26,7 @@
     <div class="max-w-xl w-full bg-white rounded-2xl shadow-lg overflow-hidden">
         <div class="px-6 py-4 bg-gray-900 text-white text-center">
             <p class="text-sm uppercase tracking-wide text-gray-300">{{ config('app.name') }}</p>
-            <p class="text-xs text-gray-400">Estatus público de unidad</p>
+            <p class="text-xs text-gray-400">Estatus de unidad</p>
         </div>
 
         <div class="p-8 text-center">
@@ -65,7 +65,7 @@
             </div>
 
             <p class="text-xs text-gray-400 mt-6">
-                Esta página es informativa y no contiene calificaciones ni datos confidenciales de alumnos.
+                Aviso Legal: El contenido e información mostrados en esta página son propiedad exclusiva de la institución. Este sitio es de carácter estrictamente informativo; por lo tanto, cualquier uso indebido, reproducción no autorizada o alteración de la información contenida será responsabilidad directa del usuario y podrá ser objeto de las acciones legales y sanciones administrativas correspondientes.
             </p>
         </div>
     </div>

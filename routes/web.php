@@ -35,6 +35,17 @@ Route::get('/student/{studentId}/download-report-card', function($studentId) {
     );
 })->middleware(['auth'])->name('student.download-report-card');
 
+// Ruta para descargar el formato informativo de calificaciones de una unidad
+Route::get('/student/{studentId}/download-informative-report/{unitIndex}', function ($studentId, $unitIndex) {
+    $student = \App\Models\Student::findOrFail($studentId);
+    $fileName = 'Informativo_Unidad' . $unitIndex . '_' . $student->student_number . '_' . date('Y-m-d') . '.xlsx';
+
+    return \Maatwebsite\Excel\Facades\Excel::download(
+        new \App\Filament\Exports\InformativeGradesExport($studentId, (int) $unitIndex),
+        $fileName
+    );
+})->middleware(['auth'])->name('student.download-informative-report');
+
 // Ruta para descargar boleta de una inscripción específica
 Route::get('/student/{studentId}/download-report-card/{inscriptionId}', function($studentId, $inscriptionId) {
     $student = \App\Models\Student::findOrFail($studentId);

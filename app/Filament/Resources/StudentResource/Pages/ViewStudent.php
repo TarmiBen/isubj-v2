@@ -23,6 +23,8 @@ class ViewStudent extends ViewRecord
         return "Detalle del Estudiante: {$this->record->name} {$this->record->last_name1}";
     }
 
+
+
     public function getActions(): array
     {
         $actions = [];
