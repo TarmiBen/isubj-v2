@@ -192,11 +192,18 @@ class InformativeGradesExport implements WithEvents
         $endCol = Coordinate::columnIndexFromString('AJ');
 
         for ($col = $startCol; $col <= $endCol; $col++) {
-            $value = $worksheet->getCell(Coordinate::stringFromColumnIndex($col) . $studentRow)->getCalculatedValue();
+            $columnLetter = Coordinate::stringFromColumnIndex($col);
 
-            if ($value !== null && $value !== '') {
-                $values[] = $value;
+            // La cabecera de la fila 11 marca el inicio de cada rubro
+            // (las columnas restantes del rubro están combinadas y vienen vacías).
+            $header = trim((string) $worksheet->getCell("{$columnLetter}11")->getValue());
+
+            if ($header === '') {
+                continue;
             }
+
+            $value = $worksheet->getCell("{$columnLetter}{$studentRow}")->getCalculatedValue();
+            $values[] = "{$header}: " . (($value !== null && $value !== '') ? $value : 0);
         }
 
         if (empty($values)) {

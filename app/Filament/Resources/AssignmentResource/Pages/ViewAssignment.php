@@ -618,6 +618,7 @@ class ViewAssignment extends ViewRecord
             ->pluck('student');
 
 
+
     }
 
     public function exportAttendance()
