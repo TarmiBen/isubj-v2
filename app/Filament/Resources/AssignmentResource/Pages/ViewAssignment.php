@@ -358,7 +358,7 @@ class ViewAssignment extends ViewRecord
                                                     }),
 
                                                 InfolistAction::make('downloadUnitFormat')
-                                                    ->label('Descargar Formato')
+                                                    ->label('Descargar Formato Unidad')
                                                     ->icon('heroicon-o-document-arrow-down')
                                                     ->color('primary')
                                                     ->action(function ($record) {
