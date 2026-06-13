@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class Unit extends Model
 {
@@ -20,7 +21,26 @@ class Unit extends Model
         'assignment_id',
         'name',
         'meta',
+        'uuid',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Unit $unit) {
+            if (empty($unit->uuid)) {
+                $unit->uuid = (string) Str::uuid();
+            }
+        });
+    }
+
+    /**
+     * URL pública (sin autenticación) que muestra únicamente el estatus
+     * de la unidad: si las calificaciones fueron cargadas correctamente.
+     */
+    public function getPublicStatusUrlAttribute(): string
+    {
+        return route('unit.status', $this->uuid);
+    }
 
     /**
      * Get the attributes that should be cast.

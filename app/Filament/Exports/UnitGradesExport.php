@@ -158,9 +158,9 @@ class UnitGradesExport implements WithTitle, WithEvents
                         }
                     }
 
-                    // Combinar columnas AK y AL para "Total"
-                    $sheet->mergeCells("AK11:AL11");
+                    // Columna AK para "Total" y columna AL para "Firma"
                     $sheet->setCellValue("AK11", "Total");
+                    $sheet->setCellValue("AL11", "Firma");
                     $sheet->getStyle("AK11:AL11")
                         ->getAlignment()
                         ->setHorizontal(Alignment::HORIZONTAL_CENTER)
@@ -240,13 +240,11 @@ class UnitGradesExport implements WithTitle, WithEvents
                                     $currentColumnIndex = $endColumnIndex + 1;
                                 }
 
-                                // Establecer fórmula del total en columnas AK-AL
-                                // Establecer fórmula del total en columnas AK-AL
+                                // Establecer fórmula del total en columna AK; AL queda vacía para firma
                                 if (!empty($totalFormulaParts)) {
                                     $suma = "SUM(E{$row}:AJ{$row})";
                                     $totalFormula = "=IF(({$suma})<7,ROUNDDOWN({$suma},1),ROUND({$suma},1))";
                                     $sheet->setCellValue("AK{$row}", $totalFormula);
-                                    $sheet->mergeCells("AK{$row}:AL{$row}");
                                 }
 
                             }

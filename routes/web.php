@@ -6,6 +6,7 @@ use App\Livewire\PublicStudentRegistrationForm;
 use App\Http\Controllers\StudentDocumentController;
 use App\Http\Controllers\FileAccessController;
 use App\Http\Controllers\SurveyPdfController;
+use App\Http\Controllers\UnitStatusController;
 use App\Livewire\PublicSurveyForm;
 
 Route::view('/', 'welcome');
@@ -14,6 +15,9 @@ Route::get('student/create', \App\Livewire\PublicStudentRegistration::class)->na
 // Rutas para el sistema de evaluación docente
 Route::get('/evaluacion', PublicSurveyForm::class)->name('survey.public');
 Route::get('/evaluacion/{code}', PublicSurveyForm::class)->name('survey.public.code');
+
+// Vista pública de estatus de unidad (accesible vía QR, sin autenticación)
+Route::get('/unidad/{uuid}', [UnitStatusController::class, 'show'])->name('unit.status');
 
 // Ruta para descargar PDF de reporte de evaluación docente
 Route::get('/admin/surveys/{survey}/pdf', [SurveyPdfController::class, 'download'])

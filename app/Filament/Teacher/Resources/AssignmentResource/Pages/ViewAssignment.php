@@ -461,8 +461,17 @@ class ViewAssignment extends ViewRecord
                                                     ->label('Descargar Documento de Unidad')
                                                     ->icon('heroicon-o-arrow-down-tray')
                                                     ->color('success')
-                                                    ->url(fn ($record) => !empty($record->document_src) ? asset('storage/' . $record->document_src) : null)
-                                                    ->openUrlInNewTab()
+                                                    ->action(function ($record) {
+                                                        try {
+                                                            return \App\Services\UnitDocumentExportService::download($record);
+                                                        } catch (\Throwable $e) {
+                                                            Notification::make()
+                                                                ->title('Error al generar el documento')
+                                                                ->body('Detalle: ' . $e->getMessage())
+                                                                ->danger()
+                                                                ->send();
+                                                        }
+                                                    })
                                                     ->hidden(fn ($record) => empty($record->document_src)),
                                             ])
                                     ]),
