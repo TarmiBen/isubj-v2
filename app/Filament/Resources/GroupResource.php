@@ -135,6 +135,7 @@ class GroupResource extends Resource
         return [
             'index' => Pages\ListGroups::route('/'),
             'create' => Pages\CreateGroup::route('/create'),
+            'view' => Pages\ViewGroup::route('/{record}'),
             'edit' => Pages\EditGroup::route('/{record}/edit'),
         ];
     }

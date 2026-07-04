@@ -72,7 +72,7 @@ class ViewAssignment extends ViewRecord
                 ->icon('heroicon-o-cog-6-tooth')
                 ->color('warning')
                 ->modalHeading('Configuración de Tipo de Unidades')
-                ->modalDescription('Configure si cada unidad es de tipo Práctica o Teórico. Esta configuración afectará el cálculo de calificaciones finales.')
+                ->modalDescription('Configure si cada unidad es de tipo Práctica o Teórico. Las unidades marcadas como Práctica usan un único rubro fijo de 10 Pts. y no permiten gestionar rubros manualmente. Esta configuración afectará el cálculo de calificaciones finales.')
                 ->modalWidth('2xl')
                 ->fillForm(function () {
                     $unitsConfig = [];
@@ -102,6 +102,15 @@ class ViewAssignment extends ViewRecord
                             $tipo = $data['unit_' . $unit->id] ?? 'teorico';
                             $meta = $unit->meta ?? [];
                             $meta['tipo'] = $tipo;
+
+                            // Las unidades prácticas no permiten configurar rubros manualmente:
+                            // se fija un único rubro "Práctica" con el valor completo (10 pts).
+                            if ($tipo === 'practico') {
+                                $meta['rubros'] = [
+                                    ['nombre' => 'Práctica', 'valor' => 10],
+                                ];
+                            }
+
                             $unit->meta = $meta;
                             $unit->save();
                         }
@@ -266,6 +275,7 @@ class ViewAssignment extends ViewRecord
                                                     ->modalHeading('Gestionar Rubros de la Unidad')
                                                     ->modalDescription('Agregue los rubros y sus valores. La suma total debe ser 10.')
                                                     ->modalWidth('lg')
+                                                    ->hidden(fn ($record) => ($record->meta['tipo'] ?? null) === 'practico')
                                                     ->fillForm(function ($record) {
                                                         return [
                                                             'rubros' => $record->meta['rubros'] ?? [],
@@ -474,6 +484,7 @@ class ViewAssignment extends ViewRecord
                                                                             'teacher_id' => $teacherId,
                                                                             'student_id' => $studentId,
                                                                             'unity_id' => $record->id,
+                                                                            'deleted_at' => null,
                                                                         ],
                                                                         [
                                                                             'score' => $score,
@@ -482,6 +493,10 @@ class ViewAssignment extends ViewRecord
                                                                         ]
                                                                     );
                                                                 }
+
+                                                                // updateOrInsert no dispara eventos Eloquent, así que
+                                                                // el recálculo de la nota final hay que hacerlo explícito.
+                                                                \App\Models\FinalGrade::recalculateForAssignment($record->assignment_id);
                                                             });
 
                                                             Notification::make()
@@ -502,6 +517,7 @@ class ViewAssignment extends ViewRecord
                                                                 ->body('Detalle: ' . $e->getMessage())
                                                                 ->danger()
                                                                 ->send();
+
                                                         }
                                                     }),
 
@@ -609,16 +625,17 @@ class ViewAssignment extends ViewRecord
     {
         return $this->record->group->inscriptions()->where('status', 'active')
             ->with(['student' => function ($query) {
-                $query->orderBy('last_name1')
-                    ->orderBy('last_name2')
-                    ->orderBy('name')
-                    ->select('id', 'name', 'last_name1', 'last_name2');
+                $query->select('id', 'name', 'last_name1', 'last_name2');
             }])
             ->get()
-            ->pluck('student');
-
-
-
+            ->pluck('student')
+            ->filter()
+            ->sortBy([
+                ['last_name1', 'asc'],
+                ['last_name2', 'asc'],
+                ['name', 'asc'],
+            ])
+            ->values();
     }
 
     public function exportAttendance()

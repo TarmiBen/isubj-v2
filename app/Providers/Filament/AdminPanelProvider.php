@@ -38,7 +38,8 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('60px')
             ->plugins([
                 \BezhanSalleh\FilamentShield\FilamentShieldPlugin::make(),
-                //ActivitylogPlugin::make(),
+                ActivitylogPlugin::make()
+                    ->authorize(fn () => auth()->user()?->hasRole('super_admin') ?? false),
             ])
 
             ->colors([

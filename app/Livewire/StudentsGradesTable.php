@@ -38,7 +38,7 @@ class StudentsGradesTable extends Component
 
     protected $messages = [
         'grades.*.numeric' => 'La calificación debe ser un número válido',
-        'grades.*.between' => 'La calificación debe estar entre 0 y 100',
+        'grades.*.between' => 'La calificación debe estar entre 0 y 10',
         'comments.*.max' => 'El comentario no puede exceder los 500 caracteres',
         'finalGrade.required' => 'La calificación final es requerida',
         'finalGrade.numeric' => 'La calificación final debe ser un número válido',

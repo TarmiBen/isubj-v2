@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Correspondence extends Model
 {
-    use HasFactory, SoftDeletes; // LogsActivity;
+    use HasFactory, SoftDeletes, LogsActivity;
 
     /**
      * The attributes that are mass assignable.
@@ -39,12 +41,12 @@ class Correspondence extends Model
     {
         return $this->belongsTo(Document::class);
     }
-    // public function getActivitylogOptions(): LogOptions
-    // {
-    //     return LogOptions::defaults()
-    //         ->logAll()
-    //         ->useLogName('Correspondende')
-    //         ->logOnlyDirty()
-    //         ->dontSubmitEmptyLogs();
-    // }
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->useLogName('correspondence')
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 }

@@ -52,15 +52,18 @@ class UnitGradesExport implements WithTitle, WithEvents
         $this->students = $this->unit->assignment->group->inscriptions()
             ->with(['student' => function ($query) {
                 $query->where('status', 'active')
-                    ->orderBy('last_name1')
-                    ->orderBy('last_name2')
-                    ->orderBy('name')
                     ->select('id', 'name', 'last_name1', 'last_name2');
             }])
             ->whereHas('student', function ($query) {
                 $query->where('status', 'active');
             })
-            ->get();
+            ->get()
+            ->sortBy([
+                ['student.last_name1', 'asc'],
+                ['student.last_name2', 'asc'],
+                ['student.name', 'asc'],
+            ])
+            ->values();
 
         $this->rubros = $this->unit->meta['rubros'] ?? [];
     }
@@ -134,7 +137,7 @@ class UnitGradesExport implements WithTitle, WithEvents
                             }
 
                             // Establecer el valor del encabezado del rubro
-                            $sheet->setCellValue("{$currentColumn}11", $rubro['nombre'] . " ({$rubro['valor']}%)");
+                            $sheet->setCellValue("{$currentColumn}11", $rubro['nombre'] . " ({$rubro['valor']} Pts.)");
 
                             // Aplicar estilos al encabezado
                             $sheet->getStyle("{$currentColumn}11:{$endColumn}11")

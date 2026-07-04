@@ -13,12 +13,12 @@ use App\Models\Payment;
 use App\Models\Agreement;
 use App\Models\Referral;
 use App\Models\MonthlyFee;
-//use Spatie\Activitylog\Traits\LogsActivity;
-//use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Student extends Model
 {
-    use HasFactory; //LogsActivity;
+    use HasFactory, LogsActivity;
     use SoftDeletes;
 
     /**
@@ -92,14 +92,14 @@ class Student extends Model
     }
 
 
-    // public function getActivitylogOptions() : LogOptions
-    // {
-    //     return LogOptions::defaults()
-    //         ->logAll()
-    //         ->useLogName('student')
-    //         ->logOnlyDirty()
-    //         ->dontSubmitEmptyLogs();
-    // }
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->useLogName('student')
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     public function getFullNameAttribute()
     {

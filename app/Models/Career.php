@@ -5,12 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-// use Spatie\Activitylog\Traits\LogsActivity;
-// use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Career extends Model
 {
-    use HasFactory, SoftDeletes; // LogsActivity;
+    use HasFactory, SoftDeletes, LogsActivity;
 
     protected $fillable = [
         'code',
@@ -53,13 +53,13 @@ class Career extends Model
         return $this->hasMany(Period::class);
     }
 
-    // public function getActivitylogOptions(): LogOptions
-    // {
-    //     return LogOptions::defaults()
-    //         ->logAll()
-    //         ->useLogName('Career')
-    //         ->logOnlyDirty()
-    //         ->dontSubmitEmptyLogs();
-    // }
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->useLogName('career')
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
 }

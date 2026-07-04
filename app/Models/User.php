@@ -14,13 +14,14 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Auth\Passwords\CanResetPassword as CanResetPasswordTrait;
-//use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Models\Activity;
 
 class User extends Authenticatable implements FilamentUser, CanResetPassword
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
         use HasFactory, Notifiable, SoftDeletes;
-        use HasRoles;// LogsActivity;
+        use HasRoles, LogsActivity;
         use CanResetPasswordTrait;
 
     /**
@@ -74,13 +75,18 @@ class User extends Authenticatable implements FilamentUser, CanResetPassword
             ->withTimestamps();
     }
 
-    /*public function getActivitylogOptions(): LogOptions
+    public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logAll()
-            ->useLogName('User')
+            ->logExcept(['password', 'remember_token'])
+            ->useLogName('user')
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
-    }*/
+    }
+
+    public function causedActivities()
+    {
+        return $this->morphMany(Activity::class, 'causer');
+    }
 
 }

@@ -8,12 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
-// use Spatie\Activitylog\Traits\LogsActivity;
-// use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Group extends Model
 {
-    use HasFactory; // LogsActivity;
+    use HasFactory, LogsActivity;
     use SoftDeletes;
 
     /**
@@ -72,12 +72,12 @@ class Group extends Model
         return $this->belongsTo(Cycle::class);
     }
 
-    // public function getActivitylogOptions() :LogOptions
-    // {
-    //     return LogOptions::defaults()
-    //         ->logAll()
-    //         ->useLogName('Group')
-    //         ->logOnlyDirty()
-    //         ->dontSubmitEmptyLogs();
-    // }
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->useLogName('group')
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 }

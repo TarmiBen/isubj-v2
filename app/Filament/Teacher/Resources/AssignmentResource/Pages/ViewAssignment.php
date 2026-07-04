@@ -220,6 +220,7 @@ class ViewAssignment extends ViewRecord
                                                     ->modalHeading('Gestionar Rubros de la Unidad')
                                                     ->modalDescription('Agregue los rubros y sus valores. La suma total debe ser 10.')
                                                     ->modalWidth('lg')
+                                                    ->hidden(fn ($record) => ($record->meta['tipo'] ?? null) === 'practico')
                                                     ->fillForm(function ($record) {
                                                         return [
                                                             'rubros' => $record->meta['rubros'] ?? [],
@@ -434,6 +435,10 @@ class ViewAssignment extends ViewRecord
                                                                         ]
                                                                     );
                                                                 }
+
+                                                                // updateOrInsert no dispara eventos Eloquent, así que
+                                                                // el recálculo de la nota final hay que hacerlo explícito.
+                                                                \App\Models\FinalGrade::recalculateForAssignment($record->assignment_id);
                                                             });
 
                                                             Notification::make()
@@ -518,15 +523,17 @@ class ViewAssignment extends ViewRecord
         return $this->record->group->inscriptions()
             ->with(['student' => function ($query) {
                 $query->where('status', 'active')
-                    ->orderBy('last_name1')
-                    ->orderBy('last_name2')
-                    ->orderBy('name')
                     ->select('id', 'name', 'last_name1', 'last_name2');
             }])
             ->get()
-            ->pluck('student');
-
-
+            ->pluck('student')
+            ->filter()
+            ->sortBy([
+                ['last_name1', 'asc'],
+                ['last_name2', 'asc'],
+                ['name', 'asc'],
+            ])
+            ->values();
     }
 
     public function exportAttendance()

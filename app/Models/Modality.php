@@ -5,12 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-// use Spatie\Activitylog\Traits\LogsActivity;
-// use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Modality extends Model
 {
-    use HasFactory, SoftDeletes; // LogsActivity;
+    use HasFactory, SoftDeletes, LogsActivity;
 
     /**
      * The attributes that are mass assignable.
@@ -36,12 +36,12 @@ class Modality extends Model
         ];
     }
 
-    // public function getActivitylogOptions() :LogOptions
-    // {
-    //     return LogOptions::defaults()
-    //         ->logAll()
-    //         ->useLogName('Modality')
-    //         ->logOnlyDirty()
-    //         ->dontSubmitEmptyLogs();
-    // }
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->useLogName('modality')
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 }
