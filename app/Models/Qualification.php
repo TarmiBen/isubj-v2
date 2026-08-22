@@ -35,21 +35,6 @@ class Qualification extends Model
         'comments'
     ];
 
-    protected static function booted()
-    {
-        static::created(function ($qualification) {
-            $qualification->recalculateFinalGrade();
-        });
-
-        static::updated(function ($qualification) {
-            $qualification->recalculateFinalGrade();
-        });
-
-        static::deleted(function ($qualification) {
-            $qualification->recalculateFinalGrade();
-        });
-    }
-
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);
@@ -63,20 +48,5 @@ class Qualification extends Model
     public function unity(): BelongsTo
     {
         return $this->belongsTo(Unit::class, 'unity_id');
-    }
-
-    /**
-     * Recalcula la calificación final del estudiante para el assignment.
-     * Delega en FinalGrade::recalculateForAssignment(), que es la lógica
-     * real usada en toda la app (respeta la config de tipo práctico/teórico
-     * por unidad y usa assignment_id, no subject_id).
-     */
-    protected function recalculateFinalGrade()
-    {
-        if (!$this->unity || !$this->unity->assignment) {
-            return;
-        }
-
-        FinalGrade::recalculateForAssignment($this->unity->assignment->id);
     }
 }

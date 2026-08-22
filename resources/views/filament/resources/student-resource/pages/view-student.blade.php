@@ -134,11 +134,12 @@
                                             <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Saldo</th>
                                             <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Vence</th>
                                             <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Estado</th>
+                                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Acciones</th>
                                         </tr>
                                     </thead>
                                     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                         @foreach($paymentOrders as $order)
-                                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-750">
+                                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                                 <td class="px-4 py-3 text-gray-700 dark:text-gray-300 font-mono text-xs">{{ $order->folio ?? '—' }}</td>
                                                 <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $order->concept->name ?? '—' }}</td>
                                                 <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300">${{ number_format($order->total, 2) }}</td>
@@ -151,6 +152,23 @@
                                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $statusColors[$order->status] ?? 'bg-gray-100 text-gray-800' }}">
                                                         {{ $statusLabels[$order->status] ?? $order->status }}
                                                     </span>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="flex items-center justify-center gap-1.5">
+                                                        @if(in_array($order->status, ['pending', 'partial', 'overdue', 'in_agreement']))
+                                                            <button wire:click="mountAction('pay', { orderId: {{ $order->id }} })" type="button"
+                                                                    class="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-success-600 hover:bg-success-700 text-white transition-colors">
+                                                                <x-heroicon-o-banknotes class="w-3.5 h-3.5" />
+                                                                Pagar
+                                                            </button>
+                                                        @endif
+                                                        <button wire:click="mountAction('history', { orderId: {{ $order->id }} })" type="button"
+                                                                title="Ver historial de abonos"
+                                                                class="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                                            <x-heroicon-o-clock class="w-3.5 h-3.5" />
+                                                            Historial
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         @endforeach
@@ -182,6 +200,7 @@
                                             <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Saldo</th>
                                             <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Vence</th>
                                             <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Estado</th>
+                                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Acciones</th>
                                         </tr>
                                     </thead>
                                     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -191,7 +210,7 @@
                                                 $feeColor  = ['pending'=>'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200','paid'=>'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-200','cancelled'=>'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'][$feeStatus] ?? 'bg-gray-100 text-gray-800';
                                                 $feeLabel  = ['pending'=>'Pendiente','paid'=>'Pagado','cancelled'=>'Cancelado'][$feeStatus] ?? $feeStatus;
                                             @endphp
-                                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-750">
+                                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                                 <td class="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">{{ ($monthNames[$fee->month] ?? $fee->month) . ' ' . $fee->year }}</td>
                                                 <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $fee->config?->concept?->name ?? '—' }}</td>
                                                 <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300">${{ number_format($fee->paymentOrder?->total ?? 0, 2) }}</td>
@@ -204,6 +223,25 @@
                                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $feeColor }}">
                                                         {{ $feeLabel }}
                                                     </span>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="flex items-center justify-center gap-1.5">
+                                                        @if($fee->paymentOrder && in_array($fee->paymentOrder->status, ['pending', 'partial', 'overdue', 'in_agreement']))
+                                                            <button wire:click="mountAction('pay', { orderId: {{ $fee->paymentOrder->id }} })" type="button"
+                                                                    class="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-success-600 hover:bg-success-700 text-white transition-colors">
+                                                                <x-heroicon-o-banknotes class="w-3.5 h-3.5" />
+                                                                Pagar
+                                                            </button>
+                                                        @endif
+                                                        @if($fee->paymentOrder)
+                                                            <button wire:click="mountAction('history', { orderId: {{ $fee->paymentOrder->id }} })" type="button"
+                                                                    title="Ver historial de abonos"
+                                                                    class="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                                                <x-heroicon-o-clock class="w-3.5 h-3.5" />
+                                                                Historial
+                                                            </button>
+                                                        @endif
+                                                    </div>
                                                 </td>
                                             </tr>
                                         @endforeach
@@ -243,7 +281,7 @@
                                                 $pyColor = ['applied'=>'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-200','partial'=>'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200','pending'=>'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300','cancelled'=>'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200'][$payment->status] ?? 'bg-gray-100 text-gray-800';
                                                 $pyLabel = ['applied'=>'Aplicado','partial'=>'Parcial','pending'=>'Pendiente','cancelled'=>'Cancelado'][$payment->status] ?? $payment->status;
                                             @endphp
-                                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-750">
+                                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                                 <td class="px-4 py-3 text-gray-700 dark:text-gray-300 font-mono text-xs">{{ $payment->folio ?? '—' }}</td>
                                                 <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $payment->method?->name ?? '—' }}</td>
                                                 <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300">${{ number_format($payment->amount_received, 2) }}</td>
@@ -588,7 +626,16 @@
             </div>
 
             <div class="rounded-lg p-6 shadow-sm bg-gray-100 dark:bg-gray-800">
-                <h2 class="text-lg font-bold mb-4 text-gray-800 dark:text-gray-100">Inscripción</h2>
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">Inscripción</h2>
+                    @if($record->lastInscription && \App\Filament\Support\CommonActions::canManageInscriptions())
+                        <button wire:click="mountAction('editarInscripcion')" type="button"
+                                class="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <x-heroicon-o-pencil-square class="w-3.5 h-3.5" />
+                            Editar
+                        </button>
+                    @endif
+                </div>
                 @if($record->lastInscription)
                 <div class="p-3 mb-2 rounded border border-gray-200 dark:border-gray-700
                                     bg-white dark:bg-gray-900">

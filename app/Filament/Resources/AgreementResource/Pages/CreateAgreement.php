@@ -35,12 +35,10 @@ class CreateAgreement extends CreateRecord
                     'status'       => 'in_agreement',
                 ]);
 
-                // Si es extensión de crédito, también actualizar la fecha de vencimiento
-                if (in_array($agreement->type, ['credit_extension', 'both']) && $agreement->new_due_date) {
-                    PaymentOrder::whereIn('id', $orderIds)->update([
-                        'due_date' => $agreement->new_due_date,
-                    ]);
-                }
+                // Ojo: NO se sobrescribe `due_date`. La extensión se calcula al
+                // vuelo en PaymentOrder::effectiveDueDate() sumando `extra_days`.
+                // Pisar la fecha aquí, además de perder el vencimiento original,
+                // haría que la prórroga se contara dos veces.
             }
 
             // 2. Generar parcialidades (fix: usar copy() para no mutar la fecha original)

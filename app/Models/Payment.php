@@ -61,9 +61,20 @@ class Payment extends Model
 
     public static function generateFolio(): string
     {
-        $year  = now()->year;
-        $count = static::whereYear('created_at', $year)->count() + 1;
-        return sprintf('PAY-%d-%06d', $year, $count);
+        $year   = now()->year;
+        $prefix = "PAY-{$year}-";
+
+        // Basado en el último folio existente (no en un conteo de filas), para
+        // no chocar cuando hay huecos por soft-deletes o transacciones revertidas.
+        $lastFolio = static::withTrashed()
+            ->where('folio', 'like', "{$prefix}%")
+            ->orderByDesc('folio')
+            ->lockForUpdate()
+            ->value('folio');
+
+        $next = $lastFolio ? ((int) substr($lastFolio, strlen($prefix))) + 1 : 1;
+
+        return sprintf('%s%06d', $prefix, $next);
     }
 
     // ── Relaciones ──────────────────────────────────────────────────────────
@@ -103,5 +114,38 @@ class Payment extends Model
     public function orderPayments(): HasMany
     {
         return $this->hasMany(PaymentOrderPayment::class);
+    }
+
+    // ── Tipo de cobertura (abono / pago completo / anticipo) ──────────────────
+
+    public function getCoverageTypeAttribute(): string
+    {
+        $orders = $this->relationLoaded('orders') ? $this->orders : $this->orders()->get();
+
+        if ($orders->isEmpty()) {
+            return 'anticipo';
+        }
+
+        return $orders->every(fn (PaymentOrder $order) => $order->status === 'paid')
+            ? 'completo'
+            : 'parcial';
+    }
+
+    public function getCoverageLabelAttribute(): string
+    {
+        return match ($this->coverage_type) {
+            'completo' => 'Pago completo',
+            'parcial'  => 'Abono / Parcial',
+            'anticipo' => 'Anticipo sin aplicar',
+        };
+    }
+
+    public function getCoverageColorAttribute(): string
+    {
+        return match ($this->coverage_type) {
+            'completo' => 'success',
+            'parcial'  => 'warning',
+            'anticipo' => 'gray',
+        };
     }
 }

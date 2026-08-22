@@ -65,7 +65,10 @@ class GenerateMonthlyFees extends Command
             }
 
             // Obtener alumnos inscritos activos de esta generación (filtra por student.generation_id)
+            // Se exige también student.status = active: una inscripción puede seguir marcada
+            // como activa aunque el alumno ya esté dado de baja/suspendido/graduado.
             $inscriptions = Inscription::where('status', 'active')
+                ->whereHas('student', fn ($s) => $s->where('status', 'active'))
                 ->when($config->generation_id, fn ($q) =>
                     $q->whereHas('student', fn ($s) =>
                         $s->where('generation_id', $config->generation_id)
@@ -84,7 +87,13 @@ class GenerateMonthlyFees extends Command
                     )
                 )
                 ->with('student')
-                ->get();
+                ->get()
+                // Hay alumnos con más de una inscripción marcada como activa; sin
+                // deduplicar, cada uno se recorre varias veces. La generación real
+                // ya no duplicaba (el chequeo de existencia lo evitaba), pero los
+                // conteos del reporte y del --dry-run salían inflados.
+                ->unique('student_id')
+                ->values();
 
             $filterInfo = collect([
                 $config->generation_id ? "Gen: {$config->generation->number}" : null,
@@ -93,6 +102,12 @@ class GenerateMonthlyFees extends Command
             ])->filter()->implode(', ') ?: 'Todas';
 
             $this->line("  Config #{$config->id} ({$config->concept->name}) [{$filterInfo}]: {$inscriptions->count()} alumnos");
+
+            // Fecha de referencia del periodo que se está generando. La vigencia de
+            // los descuentos se evalúa contra ESTA fecha, no contra hoy: al hacer
+            // backfill de meses pasados, un descuento que ya venció seguía siendo
+            // válido en el mes que se está generando.
+            $periodReference = Carbon::createFromDate($year, $month, 1)->startOfDay();
 
             foreach ($inscriptions as $inscription) {
                 $student = $inscription->student;
@@ -112,7 +127,7 @@ class GenerateMonthlyFees extends Command
                 if ($dryRun) {
                     // Calcular descuentos para mostrar en el dry-run
                     [$discountAmount, $applicableDiscounts] = $this->calculateDiscounts(
-                        $student, $config->amount, $config->concept
+                        $student, $config->amount, $config->concept, $periodReference
                     );
 
                     $subtotal = (float) $config->amount;
@@ -144,7 +159,7 @@ class GenerateMonthlyFees extends Command
                 }
 
                 try {
-                    DB::transaction(function () use ($config, $student, $inscription, $month, $year, $systemUserId, &$generated) {
+                    DB::transaction(function () use ($config, $student, $inscription, $month, $year, $systemUserId, $periodReference, &$generated) {
                         $periodStart = Carbon::createFromDate($year, $month, 1);
                         $periodEnd   = $periodStart->copy()->endOfMonth();
                         $dueDate     = Carbon::createFromDate($year, $month, $config->generation_day)
@@ -152,7 +167,7 @@ class GenerateMonthlyFees extends Command
 
                         // Calcular descuentos automáticos
                         [$discountAmount, $applicableDiscounts] = $this->calculateDiscounts(
-                            $student, $config->amount, $config->concept
+                            $student, $config->amount, $config->concept, $periodReference
                         );
 
                         $subtotal = (float) $config->amount;
@@ -255,8 +270,14 @@ class GenerateMonthlyFees extends Command
      * Calcula los descuentos automáticos aplicables a una mensualidad.
      * Retorna [total_descuento, lista_descuentos_aplicados].
      */
-    private function calculateDiscounts(Student $student, float $subtotal, PaymentConcept $concept): array
-    {
+    private function calculateDiscounts(
+        Student $student,
+        float $subtotal,
+        PaymentConcept $concept,
+        ?Carbon $asOf = null,
+    ): array {
+        $asOf ??= now();
+
         $totalDiscount     = 0.0;
         $appliedDiscounts  = [];
 
@@ -266,7 +287,7 @@ class GenerateMonthlyFees extends Command
             ->get();
 
         foreach ($individualDiscounts as $discount) {
-            if (!$discount->isValid()) continue;
+            if (!$discount->isValid($asOf)) continue;
 
             $amount = $discount->calculateAmount($subtotal);
             $totalDiscount += $amount;
@@ -297,7 +318,7 @@ class GenerateMonthlyFees extends Command
             ->get();
 
         foreach ($autoDiscounts as $discount) {
-            if (!$discount->isValid()) continue;
+            if (!$discount->isValid($asOf)) continue;
 
             $amount = $discount->calculateAmount($subtotal);
             $totalDiscount += $amount;
@@ -330,7 +351,7 @@ class GenerateMonthlyFees extends Command
                 if (!$referral->isEligible()) continue;
 
                 $discount = $referral->discount;
-                if (!$discount || !$discount->isValid()) continue;
+                if (!$discount || !$discount->isValid($asOf)) continue;
                 if (!in_array($discount->applies_to_type, [null, 'mensualidad'])) continue;
 
                 $amount = $discount->calculateAmount($subtotal);

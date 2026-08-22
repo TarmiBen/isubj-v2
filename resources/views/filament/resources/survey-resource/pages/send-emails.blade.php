@@ -92,11 +92,11 @@
                     <div class="max-h-96 overflow-y-auto">
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             @foreach($eligibleStudents as $student)
-                                <div class="border rounded-lg p-3 hover:bg-gray-50">
-                                    <div class="font-medium text-gray-900">
+                                <div class="border dark:border-gray-700 rounded-lg p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">
                                         {{ $student->full_name }}
                                     </div>
-                                    <div class="text-sm text-gray-600">
+                                    <div class="text-sm text-gray-600 dark:text-gray-400">
                                         {{ $student->email }}
                                     </div>
                                     <div class="text-xs text-gray-500">

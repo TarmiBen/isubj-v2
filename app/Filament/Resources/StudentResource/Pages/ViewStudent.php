@@ -4,6 +4,8 @@ namespace App\Filament\Resources\StudentResource\Pages;
 
 use App\Filament\Resources\StudentResource;
 use App\Filament\Support\CommonActions;
+use App\Models\PaymentOrder;
+use App\Services\PaymentService;
 use App\Services\PhotoService;
 use Filament\Actions\Action;
 use Filament\Forms;
@@ -32,6 +34,8 @@ class ViewStudent extends ViewRecord
         if (! $this->record->last_inscription || $this->record->last_inscription->status !== 'active') {
             $actions[] = CommonActions::EnrollStudent($this->record);
         }
+
+        $actions[] = CommonActions::EditInscription($this->record);
 
         $actions[] = CommonActions::uploadDocumentModel($this->record);
         $actions[] = CommonActions::IconReportCardStudent($this->record->id);
@@ -91,6 +95,49 @@ class ViewStudent extends ViewRecord
                     ->title('Foto actualizada correctamente')
                     ->success()
                     ->send();
+            });
+    }
+
+    // ── Acción: ver el historial de abonos de un adeudo ──────────────────────
+
+    public function historyAction(): Action
+    {
+        return \App\Filament\Support\PaymentOrderHistory::pageAction();
+    }
+
+    // ── Acción: registrar pago sobre un adeudo (PaymentOrder) ────────────────
+
+    public function payAction(): Action
+    {
+        return Action::make('pay')
+            ->label('Pagar')
+            ->icon('heroicon-o-banknotes')
+            ->color('success')
+            ->modalHeading(function (array $arguments): string {
+                $order = PaymentOrder::find($arguments['orderId'] ?? null);
+                return 'Registrar pago' . ($order ? " — Folio {$order->folio}" : '');
+            })
+            ->modalSubmitActionLabel('Registrar pago')
+            ->fillForm(function (array $arguments): array {
+                $order = PaymentOrder::findOrFail($arguments['orderId']);
+
+                return [
+                    'payment_date'    => now()->format('Y-m-d'),
+                    'amount_applied'  => $order->balance,
+                ];
+            })
+            ->form(fn (array $arguments): array => PaymentService::paymentFormSchema(PaymentOrder::findOrFail($arguments['orderId'])))
+            ->action(function (array $data, array $arguments): void {
+                $order = PaymentOrder::findOrFail($arguments['orderId']);
+
+                try {
+                    $result = PaymentService::registerPayment($order, $data);
+                } catch (\InvalidArgumentException $e) {
+                    Notification::make()->title('Monto inválido')->body($e->getMessage())->danger()->send();
+                    return;
+                }
+
+                PaymentService::notifyPaymentRegistered($result);
             });
     }
 

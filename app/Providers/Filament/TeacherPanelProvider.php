@@ -13,6 +13,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Enums\ThemeMode;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -39,6 +40,7 @@ class TeacherPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
+            ->defaultThemeMode(ThemeMode::Dark)
             ->discoverResources(
                 in: app_path('Filament/Teacher/Resources'),
                 for: 'App\\Filament\\Teacher\\Resources',
@@ -62,6 +64,7 @@ class TeacherPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                \App\Http\Middleware\BlockPanelAccess::class . ':block_teacher_login,maestros',
             ])
             ->authMiddleware([
                 Authenticate::class,
@@ -70,10 +73,10 @@ class TeacherPanelProvider extends PanelProvider
                 'panels::head.end',
                 fn () => new \Illuminate\Support\HtmlString('
                     <link rel="manifest" href="/manifest-teacher.json">
-                    <meta name="theme-color" content="#ffffff">
+                    <meta name="theme-color" content="#111827">
                     <meta name="mobile-web-app-capable" content="yes">
                     <meta name="apple-mobile-web-app-capable" content="yes">
-                    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+                    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
                     <meta name="apple-mobile-web-app-title" content="ISUBJ Docente">
                     <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
                 ')

@@ -81,6 +81,7 @@ class PaymentOrdersRelationManager extends RelationManager
                     }),
             ])
             ->actions([
+                \App\Filament\Support\PaymentOrderHistory::tableAction(),
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
             ]);

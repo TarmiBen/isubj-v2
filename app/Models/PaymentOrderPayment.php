@@ -28,13 +28,20 @@ class PaymentOrderPayment extends Model
         'payment_id',
         'payment_order_id',
         'amount_applied',
+        'days_late',
     ];
 
     protected function casts(): array
     {
         return [
             'amount_applied' => 'decimal:2',
+            'days_late'      => 'integer',
         ];
+    }
+
+    public function isLate(): bool
+    {
+        return (int) $this->days_late > 0;
     }
 
     public function payment(): BelongsTo

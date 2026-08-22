@@ -106,7 +106,7 @@
                                 </thead>
                                 <tbody>
                                     @foreach($questionStatistics['by_teacher'] as $stat)
-                                        <tr class="border-b hover:bg-gray-50">
+                                        <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                             <td class="py-3 px-4 font-medium">{{ $stat['teacher_name'] }}</td>
                                             <td class="py-3 px-4">{{ $stat['subject_name'] }}</td>
                                             <td class="py-3 px-4 text-center">{{ $stat['count'] }}</td>

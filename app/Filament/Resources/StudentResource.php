@@ -118,7 +118,9 @@ class StudentResource extends Resource
                     ->options([
                         'active' => 'Activo',
                         'inactive' => 'Inactivo',
-                        'graduate' => 'Graduado',
+                        'graduated' => 'Graduado',
+                        'suspended' => 'Suspendido',
+                        'pre-registration' => 'Preinscripción',
                     ])
                     ->required(),
                 Forms\Components\TextInput::make('guardian_name')
@@ -184,6 +186,7 @@ class StudentResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->recordUrl(fn ($record) => StudentResource::getUrl('view', ['record' => $record]))
             ->columns([
 
                 Tables\Columns\ImageColumn::make('photo_thumb')
@@ -210,11 +213,16 @@ class StudentResource extends Resource
                     ->color(fn (string $state) => match ($state) {
                         'active' => 'success',
                         'inactive' => 'danger',
+                        'graduated' => 'info',
+                        'suspended' => 'warning',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => [
                         'active' => 'Activo',
                         'inactive' => 'Inactivo',
+                        'graduated' => 'Graduado',
+                        'suspended' => 'Suspendido',
+                        'pre-registration' => 'Preinscripción',
                     ][$state] ?? $state)
                     ->sortable()
                     ->toggleable(),

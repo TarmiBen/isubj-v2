@@ -128,6 +128,15 @@ class Student extends Model
         return $this->hasMany(Agreement::class);
     }
 
+    /**
+     * Convenios vigentes. Se declara como relación aparte para poder hacer
+     * eager loading al calcular vencimientos en tablas de adeudos.
+     */
+    public function activeAgreements()
+    {
+        return $this->hasMany(Agreement::class)->where('status', 'active');
+    }
+
     public function monthlyFees()
     {
         return $this->hasMany(MonthlyFee::class);
@@ -149,7 +158,7 @@ class Student extends Model
     public function getPendingBalanceAttribute(): float
     {
         return (float) $this->paymentOrders()
-            ->whereIn('status', ['pending', 'partial', 'overdue'])
+            ->whereIn('status', ['pending', 'partial', 'overdue', 'in_agreement'])
             ->sum('balance');
     }
 

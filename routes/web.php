@@ -12,6 +12,18 @@ use App\Livewire\PublicSurveyForm;
 Route::view('/', 'welcome');
 Route::get('student/create', \App\Livewire\PublicStudentRegistration::class)->name('student.create');
 
+Route::get('/acceso-restringido', function (\Illuminate\Http\Request $request) {
+    $tipo = $request->query('tipo');
+
+    $mensaje = match ($tipo) {
+        'maestros' => 'El acceso de maestros está temporalmente deshabilitado.',
+        'alumnos' => 'El acceso de alumnos está temporalmente deshabilitado.',
+        default => 'El acceso a esta sección está temporalmente deshabilitado.',
+    };
+
+    return view('access-blocked', ['mensaje' => $mensaje]);
+})->name('access.blocked');
+
 // Rutas para el sistema de evaluación docente
 Route::get('/evaluacion', PublicSurveyForm::class)->name('survey.public');
 Route::get('/evaluacion/{code}', PublicSurveyForm::class)->name('survey.public.code');
@@ -77,5 +89,10 @@ Route::get('/admin/credenciales/download/{uuid}', function (string $uuid) {
 
     return response()->download($path, $name)->deleteFileAfterSend(true);
 })->middleware(['auth'])->name('credenciales.download');
+
+// Visor de logs del sistema (solo super_admin)
+Route::get('/admin/logs', [\Rap2hpoutre\LaravelLogViewer\LogViewerController::class, 'index'])
+    ->middleware(['auth', \App\Http\Middleware\EnsureSuperAdmin::class])
+    ->name('log-viewer.index');
 
 require __DIR__.'/auth.php';

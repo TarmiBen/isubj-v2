@@ -37,7 +37,7 @@ class AgendaResource extends Resource
                             ->label('Nombre')
                             ->required()
                             ->maxLength(100)
-                            ->live(onBlur: true)
+                            ->live(debounce: 500)
                             ->afterStateUpdated(fn($state, $set) => $set('slug', Str::slug($state))),
                         Forms\Components\TextInput::make('slug')
                             ->required()

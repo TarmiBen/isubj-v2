@@ -71,12 +71,17 @@ class AgreementResource extends Resource
                         ->dehydrated(false),
                 ]),
 
-            Forms\Components\Section::make('Extensión de fecha')
+            Forms\Components\Section::make('Extensión de plazo')
+                ->description('Los días extra son el dato que corre la fecha límite de los adeudos. Las fechas de inicio y fin quedan como referencia de cómo se negoció el convenio.')
                 ->visible(fn ($get) => in_array($get('type'), ['credit_extension', 'both']))
                 ->schema([
-                    Forms\Components\DatePicker::make('original_due_date')->label('Fecha original vencimiento'),
-                    Forms\Components\DatePicker::make('new_due_date')->label('Nueva fecha vencimiento'),
-                    Forms\Components\TextInput::make('extra_days')->label('Días extra')->numeric(),
+                    Forms\Components\DatePicker::make('original_due_date')->label('Fecha de inicio de convenio'),
+                    Forms\Components\DatePicker::make('new_due_date')->label('Fecha de fin de convenio'),
+                    Forms\Components\TextInput::make('extra_days')
+                        ->label('Días extra')
+                        ->numeric()
+                        ->minValue(1)
+                        ->helperText('Se suman al vencimiento de cada adeudo. Ej.: vence el 10 y con 13 días extra el recargo empieza el 24.'),
                 ])->columns(3),
 
             Forms\Components\Section::make('Parcialidades')
@@ -111,7 +116,7 @@ class AgreementResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('folio')->label('Folio')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('student.full_name')->label('Alumno')->searchable(),
+                \App\Filament\Support\StudentColumn::make(),
                 Tables\Columns\TextColumn::make('type')->label('Tipo')->badge()
                     ->formatStateUsing(fn ($state) => match($state) {
                         'credit_extension' => 'Ext. crédito',

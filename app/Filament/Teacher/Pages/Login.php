@@ -2,12 +2,26 @@
 
 namespace App\Filament\Teacher\Pages;
 
+use App\Models\Setting;
+use Filament\Http\Responses\Auth\Contracts\LoginResponse;
 use Filament\Pages\Auth\Login as BaseLogin;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\HtmlString;
+use Illuminate\Validation\ValidationException;
 
 class Login extends BaseLogin
 {
+    public function authenticate(): ?LoginResponse
+    {
+        if (Setting::get('block_teacher_login', false)) {
+            throw ValidationException::withMessages([
+                'data.email' => 'El acceso de maestros está temporalmente deshabilitado.',
+            ]);
+        }
+
+        return parent::authenticate();
+    }
+
     public function getHeading(): string | Htmlable
     {
         return __('Iniciar Sesión - Profesores');

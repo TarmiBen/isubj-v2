@@ -47,9 +47,16 @@ class CalendarReservations extends Page
             ->get();
 
         $this->events = $monthReservations->map(function ($reservation) {
+            // Los eventos de tipo "calendar" (no aula física) no tienen docente
+            // asignado (user_id es null) — sólo las reservaciones de tipo "room"
+            // lo requieren. Sin el null-safe, esto rompía la carga del mes entero.
+            $title = $reservation->user
+                ? $reservation->user->name . ' - ' . $reservation->agenda->name
+                : $reservation->agenda->name;
+
             return [
                 'id' => $reservation->id,
-                'title' => $reservation->user->name . ' - ' . $reservation->agenda->name,
+                'title' => $title,
                 'start' => $reservation->date->format('Y-m-d') . 'T' . $reservation->start_time,
                 'end' => $reservation->date->format('Y-m-d') . 'T' . $reservation->end_time,
                 'backgroundColor' => $this->getStatusColor($reservation->status),
@@ -58,7 +65,7 @@ class CalendarReservations extends Page
                     'status' => $reservation->status,
                     'purpose' => $reservation->purpose,
                     'agenda' => $reservation->agenda->name,
-                    'user' => $reservation->user->name,
+                    'user' => $reservation->user?->name,
                 ],
             ];
         })->toArray();

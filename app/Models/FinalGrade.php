@@ -115,56 +115,32 @@ class FinalGrade extends Model
     }
 
     /**
-     * Calcula y guarda la calificación final de un estudiante en un assignment
+     * Redondea una calificación a 1 decimal con regla asimétrica:
+     * - Si el resultado queda por debajo de 7, el segundo decimal siempre se trunca hacia abajo
+     *   (6.95 -> 6.9, 6.99 -> 6.9, 5.98 -> 5.9).
+     * - Si el resultado queda en 7 o más, el segundo decimal siempre redondea hacia arriba
+     *   (7.05 -> 7.1, 7.09 -> 7.1).
      */
-    public static function calculateAndSave(int $studentId, int $assignmentId, array $calculatedFrom = []): ?self
+    public static function roundFinalGrade(float $grade): float
     {
-        // Obtener las calificaciones parciales del estudiante para este assignment
-        $qualifications = \App\Models\Qualification::where('student_id', $studentId)
-            ->whereHas('unity', function($query) use ($assignmentId) {
-                $query->where('assignment_id', $assignmentId);
-            })
-            ->where('score', '>', 0)
-            ->get();
+        $rounded2 = round($grade, 2);
+        $formatted = number_format($rounded2, 2, '.', '');
+        [$intPart, $decPart] = explode('.', $formatted);
 
-        if ($qualifications->isEmpty()) {
-            return null;
+        $firstDecimal = $decPart[0];
+        $secondDecimal = (int) $decPart[1];
+
+        $base = (float) "{$intPart}.{$firstDecimal}";
+
+        if ($secondDecimal === 0) {
+            return $base;
         }
 
-        // Calcular promedio
-        $average = $qualifications->avg('score');
-        $finalGrade = round($average, 1); // Las calificaciones ya están en escala 0-10
-
-        // Determinar el siguiente intento
-        $lastAttempt = self::where('student_id', $studentId)
-            ->where('assignment_id', $assignmentId)
-            ->max('attempt') ?? 0;
-
-        $nextAttempt = $lastAttempt + 1;
-
-        // No permitir más de 3 intentos
-        if ($nextAttempt > 3) {
-            return null;
+        if ($rounded2 < 7.0) {
+            return $base;
         }
 
-        // Determinar status y source
-        $status = $finalGrade >= 7.0 ? 'passed' : 'failed';
-        $source = match($nextAttempt) {
-            1 => 'ordinario',
-            2 => 'extraordinario',
-            3 => 'especial',
-            default => 'ordinario'
-        };
-
-        return self::create([
-            'student_id' => $studentId,
-            'assignment_id' => $assignmentId,
-            'attempt' => $nextAttempt,
-            'grade' => $finalGrade,
-            'status' => $status,
-            'source' => $source,
-            'calculated_from' => $calculatedFrom ?: $qualifications->pluck('id')->toArray()
-        ]);
+        return round($base + 0.1, 1);
     }
 
     /**
@@ -203,125 +179,10 @@ class FinalGrade extends Model
      */
     public function updateGrade(float $newGrade): bool
     {
-        $this->grade = round($newGrade, 1);
+        $this->grade = self::roundFinalGrade($newGrade);
         $this->status = $this->grade >= 7.0 ? 'passed' : 'failed';
 
         return $this->save();
-    }
-
-    /**
-     * Calcula automáticamente la calificación final de un estudiante específico si tiene todas las unidades completas
-     */
-    public static function autoCalculateForStudent(int $studentId, int $assignmentId): ?self
-    {
-        try {
-            $assignment = \App\Models\Assignment::with(['units'])->find($assignmentId);
-
-            if (!$assignment) {
-                return null;
-            }
-
-            $totalUnits = $assignment->units->count();
-            $subjectId = $assignment->subject_id;
-            $unitIds = $assignment->units->pluck('id');
-
-            // Obtener calificaciones del estudiante
-            $qualifications = \App\Models\Qualification::where('student_id', $studentId)
-                ->whereIn('unity_id', $unitIds)
-                ->where('score', '>', 0)
-                ->get();
-
-            // Solo proceder si tiene todas las unidades calificadas
-            if ($qualifications->count() < $totalUnits) {
-                return null;
-            }
-
-            // Verificar si ya existe una calificación final automática
-            $existingFinalGrade = self::where('student_id', $studentId)
-                ->where('assignment_id', $assignmentId)
-                ->where('attempt', 1)
-                ->first();
-
-            // Verificar si hay configuración de tipos de unidades
-            $hasConfiguration = $assignment->units->contains(function ($unit) {
-                return isset($unit->meta['tipo']);
-            });
-
-            // Calcular el promedio según la configuración
-            $finalGrade = 0;
-
-            if ($hasConfiguration) {
-                // Separar unidades por tipo
-                $practicoUnits = collect();
-                $teoricoUnits = collect();
-
-                foreach ($assignment->units as $unit) {
-                    $tipo = $unit->meta['tipo'] ?? 'teorico';
-                    if ($tipo === 'practico') {
-                        $practicoUnits->push($unit->id);
-                    } else {
-                        $teoricoUnits->push($unit->id);
-                    }
-                }
-
-                // Calcular promedio de unidades prácticas
-                $promedioPractico = null;
-                if ($practicoUnits->isNotEmpty()) {
-                    $practicoQualifications = $qualifications->whereIn('unity_id', $practicoUnits->toArray());
-                    if ($practicoQualifications->isNotEmpty()) {
-                        $promedioPractico = $practicoQualifications->avg('score');
-                    }
-                }
-
-                // Calcular promedio de unidades teóricas
-                $promedioTeorico = null;
-                if ($teoricoUnits->isNotEmpty()) {
-                    $teoricoQualifications = $qualifications->whereIn('unity_id', $teoricoUnits->toArray());
-                    if ($teoricoQualifications->isNotEmpty()) {
-                        $promedioTeorico = $teoricoQualifications->avg('score');
-                    }
-                }
-
-                // Calcular promedio final entre práctico y teórico
-                if ($promedioPractico !== null && $promedioTeorico !== null) {
-                    $finalGrade = round(($promedioPractico + $promedioTeorico) / 2, 1);
-                } elseif ($promedioPractico !== null) {
-                    $finalGrade = round($promedioPractico, 1);
-                } elseif ($promedioTeorico !== null) {
-                    $finalGrade = round($promedioTeorico, 1);
-                } else {
-                    $finalGrade = 0;
-                }
-            } else {
-                // Lógica original: promedio simple
-                $average = $qualifications->avg('score');
-                $finalGrade = round($average, 1);
-            }
-
-            if ($existingFinalGrade) {
-                // Actualizar la calificación existente
-                $existingFinalGrade->update([
-                    'grade' => $finalGrade,
-                    'status' => $finalGrade >= 7.0 ? 'passed' : 'failed',
-                    'calculated_from' => $qualifications->pluck('id')->toArray()
-                ]);
-                return $existingFinalGrade;
-            } else {
-                // Crear nueva calificación final automática
-                return self::create([
-                    'student_id' => $studentId,
-                    'assignment_id' => $assignmentId,
-                    'attempt' => 1,
-                    'grade' => $finalGrade,
-                    'status' => $finalGrade >= 7.0 ? 'passed' : 'failed',
-                    'source' => 'ordinario',
-                    'calculated_from' => $qualifications->pluck('id')->toArray()
-                ]);
-            }
-        } catch (\Exception $e) {
-            \Log::error("Error calculando calificación final automática para estudiante {$studentId}: " . $e->getMessage());
-            return null;
-        }
     }
 
     /**
@@ -345,26 +206,6 @@ class FinalGrade extends Model
                 return;
             }
 
-            // Verificar si hay configuración de tipos de unidades
-            $hasConfiguration = $assignment->units->contains(function ($unit) {
-                return isset($unit->meta['tipo']);
-            });
-
-            // Separar unidades por tipo si hay configuración
-            $practicoUnits = collect();
-            $teoricoUnits = collect();
-
-            if ($hasConfiguration) {
-                foreach ($assignment->units as $unit) {
-                    $tipo = $unit->meta['tipo'] ?? 'teorico';
-                    if ($tipo === 'practico') {
-                        $practicoUnits->push($unit->id);
-                    } else {
-                        $teoricoUnits->push($unit->id);
-                    }
-                }
-            }
-
             $processedCount = 0;
             $createdCount = 0;
             $updatedCount = 0;
@@ -378,7 +219,7 @@ class FinalGrade extends Model
 
                 // Si no tiene todas las unidades calificadas, eliminar calificación final automática
                 if ($qualifications->count() < $totalUnits) {
-                    $deletedCount = self::where('student_id', $student->id)
+                    self::where('student_id', $student->id)
                         ->where('assignment_id', $assignmentId)
                         ->where('attempt', 1)
                         ->delete();
@@ -391,57 +232,23 @@ class FinalGrade extends Model
                     ->where('attempt', 1)
                     ->first();
 
-                // Calcular el promedio según la configuración
-                $finalGrade = 0;
-
-                if ($hasConfiguration && ($practicoUnits->isNotEmpty() || $teoricoUnits->isNotEmpty())) {
-                    // Nueva lógica: calcular promedio separado para práctico y teórico
-                    $promedioPractico = null;
-                    $promedioTeorico = null;
-
-                    // Calcular promedio de unidades prácticas
-                    if ($practicoUnits->isNotEmpty()) {
-                        $practicoQualifications = $qualifications->whereIn('unity_id', $practicoUnits->toArray());
-                        if ($practicoQualifications->isNotEmpty()) {
-                            $promedioPractico = $practicoQualifications->avg('score');
-                        }
-                    }
-
-                    // Calcular promedio de unidades teóricas
-                    if ($teoricoUnits->isNotEmpty()) {
-                        $teoricoQualifications = $qualifications->whereIn('unity_id', $teoricoUnits->toArray());
-                        if ($teoricoQualifications->isNotEmpty()) {
-                            $promedioTeorico = $teoricoQualifications->avg('score');
-                        }
-                    }
-
-                    // Calcular promedio final entre práctico y teórico
-                    if ($promedioPractico !== null && $promedioTeorico !== null) {
-                        // Hay ambos tipos: promediar entre ellos
-                        $finalGrade = round(($promedioPractico + $promedioTeorico) / 2, 1);
-                    } elseif ($promedioPractico !== null) {
-                        // Solo hay prácticas
-                        $finalGrade = round($promedioPractico, 1);
-                    } elseif ($promedioTeorico !== null) {
-                        // Solo hay teóricas
-                        $finalGrade = round($promedioTeorico, 1);
-                    } else {
-                        // No hay calificaciones válidas
-                        $finalGrade = 0;
-                    }
-                } else {
-                    // Lógica original: promedio simple de todas las unidades
-                    $average = $qualifications->avg('score');
-                    $finalGrade = round($average, 1);
-                }
+                // Promedio simple de todas las unidades, sin distinguir tipo práctico/teórico
+                $average = $qualifications->avg('score');
+                $finalGrade = self::roundFinalGrade($average);
 
                 if ($existingFinalGrade) {
-                    $existingFinalGrade->update([
-                        'grade' => $finalGrade,
-                        'status' => $finalGrade >= 7.0 ? 'passed' : 'failed',
-                        'calculated_from' => $qualifications->pluck('id')->toArray()
-                    ]);
-                    $updatedCount++;
+                    // Solo escribir si la calificación realmente cambió, para no generar
+                    // actualizaciones/log de actividad innecesarios cada vez que se entra a la materia
+                    $gradeChanged = number_format((float) $existingFinalGrade->grade, 1) !== number_format($finalGrade, 1);
+
+                    if ($gradeChanged) {
+                        $existingFinalGrade->update([
+                            'grade' => $finalGrade,
+                            'status' => $finalGrade >= 7.0 ? 'passed' : 'failed',
+                            'calculated_from' => $qualifications->pluck('id')->toArray()
+                        ]);
+                        $updatedCount++;
+                    }
                 } else {
                     self::create([
                         'student_id' => $student->id,

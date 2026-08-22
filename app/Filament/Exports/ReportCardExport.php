@@ -30,7 +30,8 @@ class ReportCardExport implements WithEvents
         if ($inscriptionId) {
             $this->inscription = $this->student->inscriptions()
                 ->with(['group.period.career'])
-                ->findOrFail($inscriptionId);
+                ->latest()
+                ->firstOrFail();
         } else {
             $this->inscription = $this->student->lastInscription;
         }
@@ -82,6 +83,7 @@ class ReportCardExport implements WithEvents
 
                     // Llenar información del estudiante
                     $sheet->setCellValue('C6',  TextHelper::toUpperWithoutAccents($this->student->fullName) ?? '');
+                    $sheet->setCellValue('F6',  TextHelper::toUpperWithoutAccents($this->student->student_number) ?? '');
 
                     // Nombre de la carrera
                     if ($this->inscription) {
@@ -95,6 +97,8 @@ class ReportCardExport implements WithEvents
                         // Semestre
                         $semestre = $this->inscription->group->period->name ?? '';
                         $sheet->setCellValue('F8', $semestre);
+                        $period = $this->inscription->group->cycle->name ?? '';
+                        $sheet->setCellValue('C8', $period);
                     }
 
                     // Llenar las asignaturas y calificaciones a partir de la fila 11
@@ -119,6 +123,9 @@ class ReportCardExport implements WithEvents
                             // Observación (tipo de intento)
                             $attemptType = $finalGrade->getAttemptTypeAttribute();
                             $sheet->setCellValue("N{$row}", $attemptType);
+
+                            // periodo
+                            $sheet->setCellValue("O{$row}", $period);
 
                             // Acumular para el promedio
                             $totalGrades += $finalGrade->grade;

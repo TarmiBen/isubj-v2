@@ -10,6 +10,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Enums\ThemeMode;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -30,6 +31,7 @@ class UserPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Emerald,
             ])
+            ->defaultThemeMode(ThemeMode::Dark)
             ->discoverResources(in: app_path('Filament/User/Resources'), for: 'App\\Filament\\User\\Resources')
             ->discoverPages(in: app_path('Filament/User/Pages'), for: 'App\\Filament\\User\\Pages')
             ->pages([
@@ -51,7 +53,7 @@ class UserPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
                 Authorize::class,
-
+                \App\Http\Middleware\BlockPanelAccess::class . ':block_student_login,alumnos',
             ])
             ->authMiddleware([
                 Authenticate::class,
@@ -61,10 +63,10 @@ class UserPanelProvider extends PanelProvider
                 'panels::head.end',
                 fn () => new \Illuminate\Support\HtmlString('
                     <link rel="manifest" href="/manifest-user.json">
-                    <meta name="theme-color" content="#ffffff">
+                    <meta name="theme-color" content="#111827">
                     <meta name="mobile-web-app-capable" content="yes">
                     <meta name="apple-mobile-web-app-capable" content="yes">
-                    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+                    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
                     <meta name="apple-mobile-web-app-title" content="ISUBJ">
                     <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
                 ')

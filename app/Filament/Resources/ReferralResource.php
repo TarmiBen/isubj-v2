@@ -72,8 +72,8 @@ class ReferralResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('referrer.full_name')->label('Referidor')->searchable(),
-                Tables\Columns\TextColumn::make('referred.full_name')->label('Referido')->searchable(),
+                \App\Filament\Support\StudentColumn::make('referrer', 'Referidor'),
+                \App\Filament\Support\StudentColumn::make('referred', 'Referido'),
                 Tables\Columns\TextColumn::make('referral_code')->label('Código'),
                 Tables\Columns\TextColumn::make('discount.name')->label('Descuento'),
                 Tables\Columns\BadgeColumn::make('status')->label('Estado')

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Forms;
 
+use App\Models\Setting;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -35,6 +36,20 @@ class LoginForm extends Form
 
             throw ValidationException::withMessages([
                 'form.email' => trans('auth.failed'),
+            ]);
+        }
+
+        $user = Auth::user();
+
+        if (
+            Setting::get('block_student_login', false)
+            && ! $user->hasRole('super_admin')
+            && ! $user->hasRole('Docentes')
+        ) {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'form.email' => 'El acceso de alumnos está temporalmente deshabilitado.',
             ]);
         }
 

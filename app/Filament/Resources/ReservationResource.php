@@ -304,9 +304,15 @@ class ReservationResource extends Resource
         return [
             'index' => Pages\ListReservations::route('/'),
             'create' => Pages\CreateReservation::route('/create'),
+            // 'calendar' debe registrarse ANTES que 'view' (/{record}): Laravel
+            // hace match de rutas en orden de registro, y /{record} es un
+            // comodín de un solo segmento que también matchea "/calendar" —
+            // si 'view' va primero, "calendar" se interpreta como un ID de
+            // reservación inexistente y responde 404 en vez de abrir el
+            // calendario.
+            'calendar' => Pages\CalendarReservations::route('/calendar'),
             'edit' => Pages\EditReservation::route('/{record}/edit'),
             'view' => Pages\ViewReservation::route('/{record}'),
-            'calendar' => Pages\CalendarReservations::route('/calendar'),
         ];
     }
 }

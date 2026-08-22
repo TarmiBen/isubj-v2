@@ -101,4 +101,30 @@ class Agreement extends Model
     {
         return (float) ($this->total_amount - $this->paid_amount);
     }
+
+    // ── Extensión de plazo ───────────────────────────────────────────────────
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    /**
+     * ¿Este convenio corre la fecha de vencimiento de los adeudos del alumno?
+     *
+     * El dato que manda es `extra_days`: `original_due_date` y `new_due_date`
+     * quedan como referencia de cómo se negoció, pero el corrimiento real se
+     * calcula sumando los días extra a la fecha de cada adeudo.
+     */
+    public function grantsExtension(): bool
+    {
+        return $this->status === 'active'
+            && in_array($this->type, ['credit_extension', 'both'], true)
+            && (int) $this->extra_days > 0;
+    }
+
+    public function getExtraDaysAttribute($value): int
+    {
+        return (int) $value;
+    }
 }

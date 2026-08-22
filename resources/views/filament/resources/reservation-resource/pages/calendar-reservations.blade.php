@@ -72,7 +72,7 @@
                             <div class="flex items-start justify-between">
                                 <div class="flex-1">
                                     <p class="font-semibold text-gray-900 dark:text-white">
-                                        {{ $reservation->user->name }}
+                                        {{ $reservation->user->name ?? $reservation->agenda->name }}
                                     </p>
                                     <p class="text-sm text-gray-600 dark:text-gray-300">
                                         {{ $reservation->agenda->name }}
@@ -117,7 +117,7 @@
                             <div class="flex items-start justify-between">
                                 <div class="flex-1">
                                     <p class="font-semibold text-gray-900 dark:text-white">
-                                        {{ $reservation->user->name }}
+                                        {{ $reservation->user->name ?? $reservation->agenda->name }}
                                     </p>
                                     <p class="text-sm text-gray-600 dark:text-gray-300">
                                         {{ $reservation->agenda->name }}
@@ -203,7 +203,14 @@
                     week: 'Semana',
                     day: 'Día'
                 },
-                initialDate: new Date(@js($currentYear), @js($currentMonth - 1), 1),
+                // Se usa la referencia reactiva del componente (igual que en
+                // "events" arriba) en vez de un valor PHP fijo, para que tome
+                // el mes vigente en cada reinicio del calendario. Con un valor
+                // fijo la cuadrícula se quedaba pegada en el mes de la carga
+                // inicial de la página, porque este bloque vive en el stack
+                // de scripts y no se vuelve a renderizar en cada actualización
+                // de Livewire — sólo el encabezado (Anterior/Siguiente) cambiaba.
+                initialDate: new Date(@this.currentYear, @this.currentMonth - 1, 1),
                 firstDay: 1,
                 dayMaxEvents: true,
             });
@@ -211,22 +218,25 @@
             calendar.render();
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        // Antes este init corría en 'DOMContentLoaded', pero ese evento ya
+        // disparó para cuando el navegador llega a este script (va al final
+        // del body) y Livewire aún no había terminado de inicializar — leer
+        // la propiedad reactiva "events" del componente fallaba con
+        // "Livewire is not defined" o "Cannot read properties of undefined".
+        // 'livewire:navigated' se dispara también en la carga inicial (no
+        // sólo en navegación SPA), y para entonces el componente ya existe.
+        document.addEventListener('livewire:navigated', () => {
             initCalendar();
         });
 
-        // Reinicializar el calendario cuando Livewire actualiza
-        document.addEventListener('livewire:navigated', () => {
-            setTimeout(() => {
-                initCalendar();
-            }, 100);
-        });
-
-        // Escuchar eventos de Livewire
-        Livewire.hook('morph.updated', () => {
-            setTimeout(() => {
-                initCalendar();
-            }, 100);
+        // El hook se registra dentro de 'livewire:init' para no referenciar
+        // el objeto Livewire antes de que exista.
+        document.addEventListener('livewire:init', () => {
+            Livewire.hook('morph.updated', () => {
+                setTimeout(() => {
+                    initCalendar();
+                }, 100);
+            });
         });
     </script>
 

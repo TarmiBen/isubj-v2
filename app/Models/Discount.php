@@ -95,12 +95,20 @@ class Discount extends Model
         return $query->where('student_id', $studentId)->where('active', true);
     }
 
-    public function isValid(): bool
+    /**
+     * @param  mixed  $asOf  Fecha contra la que se evalúa la vigencia. Por defecto
+     *                       hoy; al generar mensualidades de meses pasados se pasa
+     *                       la fecha del periodo, no la actual.
+     */
+    public function isValid(mixed $asOf = null): bool
     {
+        $asOf = $asOf ? \Carbon\Carbon::parse($asOf) : now();
+
         if (!$this->active) return false;
-        if ($this->valid_from && now()->lt($this->valid_from)) return false;
-        if ($this->valid_until && now()->gt($this->valid_until)) return false;
-        if ($this->max_uses && $this->used_count >= $this->max_uses) return false;
+        if ($this->valid_from && $asOf->lt($this->valid_from)) return false;
+        if ($this->valid_until && $asOf->gt($this->valid_until)) return false;
+        // max_uses NULL = ilimitado. max_uses = 0 = nadie puede usarlo.
+        if (! is_null($this->max_uses) && $this->used_count >= $this->max_uses) return false;
         if ($this->is_single_use && $this->used_at) return false; // Ya fue usado
         return true;
     }

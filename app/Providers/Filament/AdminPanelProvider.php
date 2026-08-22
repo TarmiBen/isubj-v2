@@ -9,6 +9,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Enums\ThemeMode;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
 use Filament\Tables;
@@ -39,12 +40,18 @@ class AdminPanelProvider extends PanelProvider
             ->plugins([
                 \BezhanSalleh\FilamentShield\FilamentShieldPlugin::make(),
                 ActivitylogPlugin::make()
+                    ->resource(\App\Filament\Support\ActivitylogResource::class)
                     ->authorize(fn () => auth()->user()?->hasRole('super_admin') ?? false),
             ])
 
             ->colors([
                 'primary' => Color::Cyan,
             ])
+            ->defaultThemeMode(ThemeMode::Dark)
+            // Tema propio: sin esto, las vistas Blade del proyecto solo pueden usar
+            // las clases Tailwind que Filament trae compiladas por casualidad, y las
+            // variantes dark:/hover: propias simplemente no existen en el CSS.
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->databaseNotifications()
             ->discoverResources(app_path('Filament/Resources'), 'App\\Filament\\Resources')
             ->discoverPages(app_path('Filament/Admin/Pages'), 'App\\Filament\\Admin\\Pages')
@@ -52,6 +59,16 @@ class AdminPanelProvider extends PanelProvider
                 Pages\Dashboard::class,
                 \App\Filament\Admin\Pages\SendBulkEmail::class,
                 \App\Filament\Admin\Pages\Credenciales::class,
+                \App\Filament\Admin\Pages\SystemSettings::class,
+            ])
+            ->navigationItems([
+                \Filament\Navigation\NavigationItem::make('Logs')
+                    ->icon('heroicon-o-document-text')
+                    ->group('Sistema')
+                    ->sort(101)
+                    ->url(fn () => route('log-viewer.index'))
+                    ->openUrlInNewTab()
+                    ->visible(fn () => auth()->user()?->hasRole('super_admin') ?? false),
             ])
             ->discoverWidgets(app_path('Filament/Widgets'), 'App\\Filament\\Widgets')
             ->widgets([
@@ -77,10 +94,10 @@ class AdminPanelProvider extends PanelProvider
                 'panels::head.end',
                 fn () => new \Illuminate\Support\HtmlString('
                     <link rel="manifest" href="/manifest-admin.json">
-                    <meta name="theme-color" content="#ffffff">
+                    <meta name="theme-color" content="#111827">
                     <meta name="mobile-web-app-capable" content="yes">
                     <meta name="apple-mobile-web-app-capable" content="yes">
-                    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+                    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
                     <meta name="apple-mobile-web-app-title" content="ISUBJ Admin">
                     <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
                 ')

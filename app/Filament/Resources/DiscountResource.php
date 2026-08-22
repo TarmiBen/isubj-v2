@@ -26,6 +26,15 @@ class DiscountResource extends Resource
         return auth()->user()->can('view_any_discount');
     }
 
+    /**
+     * max_uses vacío = ilimitado; max_uses = 0 = nadie puede usar el descuento.
+     * Ver Discount::isValid().
+     */
+    protected static function maxUsesIsBlocking(mixed $state): bool
+    {
+        return $state !== null && $state !== '' && (int) $state === 0;
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([
@@ -84,10 +93,32 @@ class DiscountResource extends Resource
             ])->columns(4),
 
             Forms\Components\Section::make('Vigencia y límites')->schema([
-                Forms\Components\DatePicker::make('valid_from')->label('Válido desde'),
-                Forms\Components\DatePicker::make('valid_until')->label('Válido hasta'),
-                Forms\Components\TextInput::make('max_uses')->label('Máx. usos')->numeric()->nullable(),
-                Forms\Components\Toggle::make('active')->label('Activo')->default(true),
+                Forms\Components\DatePicker::make('valid_from')->label('Válido desde')->columnSpan(1),
+                Forms\Components\DatePicker::make('valid_until')->label('Válido hasta')->columnSpan(1),
+                Forms\Components\TextInput::make('max_uses')
+                    ->label('Máx. usos')
+                    ->numeric()
+                    ->minValue(0)
+                    ->nullable()
+                    ->live(debounce: 500)
+                    ->columnSpan(1)
+                    ->helperText(fn ($state) => static::maxUsesIsBlocking($state)
+                        ? 'Este descuento no se aplicará a nadie.'
+                        : 'Déjalo vacío para usos ilimitados.'),
+                Forms\Components\Toggle::make('active')->label('Activo')->default(true)->columnSpan(1),
+
+                // Aviso, no validación: se puede guardar con 0 si así se quiere.
+                Forms\Components\Placeholder::make('max_uses_warning')
+                    ->hiddenLabel()
+                    ->columnSpanFull()
+                    ->visible(fn (Forms\Get $get) => static::maxUsesIsBlocking($get('max_uses')))
+                    ->content(new \Illuminate\Support\HtmlString(
+                        '<div class="flex gap-3 rounded-lg border border-warning-400/40 bg-warning-50 p-3 text-sm text-warning-800 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-warning-300">'
+                        . '<span class="text-lg leading-none">⚠️</span>'
+                        . '<div><p class="font-semibold">Con 0 usos nadie podrá usar este descuento.</p>'
+                        . '<p class="mt-0.5">Si lo que quieres es que no tenga límite, deja el campo <strong>vacío</strong>. '
+                        . 'Puedes guardarlo así de todos modos.</p></div></div>'
+                    )),
             ])->columns(4),
         ]);
     }
@@ -98,10 +129,10 @@ class DiscountResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('code')->label('Código')->searchable(),
                 Tables\Columns\TextColumn::make('name')->label('Nombre')->searchable()->limit(30),
-                Tables\Columns\TextColumn::make('student.full_name')
-                    ->label('Alumno')
+                \App\Filament\Support\StudentColumn::make()
+                    ->placeholder(null)
+                    ->default('Todos')
                     ->formatStateUsing(fn ($state, $record) => $record->student_id ? $state : 'Todos')
-                    ->searchable()
                     ->badge()
                     ->color(fn ($record) => $record->student_id ? 'success' : 'gray'),
                 Tables\Columns\BadgeColumn::make('condition_type')->label('Condición')
@@ -117,6 +148,18 @@ class DiscountResource extends Resource
                         $record->value_type === 'percentage' ? "{$state}%" : "\${$state}"
                     ),
                 Tables\Columns\TextColumn::make('used_count')->label('Usos'),
+                Tables\Columns\TextColumn::make('max_uses')->label('Límite')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => match (true) {
+                        is_null($state) => 'Ilimitado',
+                        (int) $state === 0 => 'Bloqueado',
+                        default => (string) $state,
+                    })
+                    ->color(fn ($state) => match (true) {
+                        is_null($state) => 'gray',
+                        (int) $state === 0 => 'danger',
+                        default => 'info',
+                    }),
                 Tables\Columns\IconColumn::make('is_single_use')->label('Único')->boolean(),
                 Tables\Columns\IconColumn::make('is_automatic')->label('Auto')->boolean(),
                 Tables\Columns\IconColumn::make('active')->label('Activo')->boolean(),

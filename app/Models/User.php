@@ -16,6 +16,7 @@ use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Auth\Passwords\CanResetPassword as CanResetPasswordTrait;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Models\Activity;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements FilamentUser, CanResetPassword
 {
@@ -23,6 +24,7 @@ class User extends Authenticatable implements FilamentUser, CanResetPassword
         use HasFactory, Notifiable, SoftDeletes;
         use HasRoles, LogsActivity;
         use CanResetPasswordTrait;
+        use HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -60,6 +62,18 @@ class User extends Authenticatable implements FilamentUser, CanResetPassword
 
     public function canAccessPanel(Panel $panel): bool
     {
+        if ($this->hasRole('super_admin')) {
+            return true;
+        }
+
+        if ($panel->getId() === 'teacher' && \App\Models\Setting::get('block_teacher_login', false)) {
+            return false;
+        }
+
+        if ($panel->getId() === 'user' && \App\Models\Setting::get('block_student_login', false)) {
+            return false;
+        }
+
         return true;
     }
 

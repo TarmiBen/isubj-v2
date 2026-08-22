@@ -2,7 +2,9 @@
 # Deploy de isubj (Laravel) a Hostinger.
 # Requiere: llave SSH ya autorizada en la cuenta de Hostinger (sin password).
 #
-# NO ejecuta migraciones, NO sube vendor/, NO corre composer (ni local ni remoto).
+# NO corre migraciones en general (hay un backlog de migraciones antiguas rotas/pendientes
+# que rompen un `migrate` normal), NO sube vendor/, NO corre composer (ni local ni remoto).
+# Las migraciones nuevas que sí se necesitan en el servidor se corren una por una con --path.
 # Se asume que vendor/ ya existe en el servidor y se mantiene tal cual.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -40,6 +42,23 @@ echo "==> Ejecutando comandos remotos "
 # El servidor sirve el sitio con PHP 8.4 (vía FPM), pero el 'php' del PATH en SSH resuelve a 8.2 (CLI del sistema) —
 # usamos la ruta explícita para que coincida con la versión real del sitio.
 REMOTE_PHP="/opt/alt/php84/usr/bin/php"
-ssh -p "${REMOTE_PORT}" "${REMOTE_USER}@${REMOTE_HOST}" "cd ${REMOTE_PATH}  && ${REMOTE_PHP} artisan config:cache && ${REMOTE_PHP} artisan route:cache && ${REMOTE_PHP} artisan view:cache"
+ssh -p "${REMOTE_PORT}" "${REMOTE_USER}@${REMOTE_HOST}" "cd ${REMOTE_PATH} \
+  && ${REMOTE_PHP} \$(which composer) require rap2hpoutre/laravel-log-viewer:v3.1.0 --no-interaction --no-scripts \
+  && ${REMOTE_PHP} \$(which composer) require laravel/sanctum --no-interaction --no-scripts \
+  && ${REMOTE_PHP} artisan migrate --path=database/migrations/2026_07_18_165913_create_settings_table.php --force \
+  && ${REMOTE_PHP} artisan migrate --path=database/migrations/2026_08_08_180000_add_surcharge_to_payment_orders_table.php --force \
+  && ${REMOTE_PHP} artisan migrate --path=database/migrations/2026_08_22_192859_create_personal_access_tokens_table.php --force \
+  && ${REMOTE_PHP} artisan filament:cache-components \
+  && ${REMOTE_PHP} artisan config:cache \
+  && ${REMOTE_PHP} artisan route:cache \
+  && ${REMOTE_PHP} artisan view:cache"
+
+echo "==> IMPORTANTE: agrega esta línea al .env remoto (no se sube por rsync) antes de este deploy:"
+echo "    STUDENT_APP_CORS_ORIGINS=https://estudiantes.isubj.com"
 
 echo "==> Deploy completo."
+
+
+
+
+
